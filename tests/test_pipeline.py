@@ -9,12 +9,12 @@ NOW = datetime(2026, 9, 11, 12, 0, tzinfo=timezone.utc)
 
 class FakeProvider:
     def recent_posts(self, source, *, since):
-        if source.handle == "elonmusk":
-            return [RawPost("1", "$DOGE payments are coming to X", "https://x.com/1", NOW - timedelta(minutes=1), 1000)]
-        if source.handle == "saylor":
-            return [RawPost("2", "DOGE payments could change crypto adoption", "https://x.com/2", NOW - timedelta(minutes=2), 500)]
-        if source.handle == "lookonchain":
-            return [RawPost("3", "DOGE payment activity is accelerating", "https://x.com/3", NOW - timedelta(minutes=3), 800)]
+        if source.handle == "coindesk":
+            return [RawPost("1", "$DOGE payments are coming to crypto", "https://example.com/1", NOW - timedelta(minutes=1), 1000)]
+        if source.handle == "cointelegraph":
+            return [RawPost("2", "DOGE payments could change crypto adoption", "https://example.com/2", NOW - timedelta(minutes=2), 500)]
+        if source.handle == "decrypt":
+            return [RawPost("3", "DOGE payment activity is accelerating", "https://example.com/3", NOW - timedelta(minutes=3), 800)]
         return []
 
 
