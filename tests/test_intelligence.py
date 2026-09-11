@@ -10,9 +10,9 @@ NOW = datetime(2026, 9, 11, 12, 0, tzinfo=timezone.utc)
 
 def make_narrative(*, meme=80.0, crypto=85.0, novelty=80.0, velocity=80.0):
     source = SourceAccount("elonmusk", "Elon Musk", "macro", 98, 85)
-    signal = FreshSignal(source, "s1", "DOGE payments", "https://x.test/1", NOW, 100, 60, True)
+    signal = FreshSignal(source, "s1", "DOGE payments", "https://x.test/1", NOW, 100)
     return Narrative(
-        "n1", "DOGE payments", (signal,), novelty, meme, crypto, velocity, 0.0, 90.0, 0.0
+        "n1", "DOGE payments", [signal], novelty, meme, crypto, velocity, 0.0
     )
 
 
