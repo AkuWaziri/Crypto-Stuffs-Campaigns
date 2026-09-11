@@ -1,15 +1,24 @@
 from __future__ import annotations
 
+from config import INTELLIGENCE_PROVIDER
 from intelligence_models import IntelligenceAssessment, IntelligenceDecision
 from intelligence_provider import IntelligenceProvider, SimpleIntelligenceProvider
 from models import Narrative
+
+
+def _default_provider() -> IntelligenceProvider:
+    if INTELLIGENCE_PROVIDER == "llm":
+        from llm_intelligence import LLMIntelligenceProvider
+
+        return LLMIntelligenceProvider()
+    return SimpleIntelligenceProvider()
 
 
 def assess_narratives(
     narratives: list[Narrative],
     provider: IntelligenceProvider | None = None,
 ) -> list[IntelligenceAssessment]:
-    intelligence = provider or SimpleIntelligenceProvider()
+    intelligence = provider or _default_provider()
     return [intelligence.assess(narrative) for narrative in narratives]
 
 
