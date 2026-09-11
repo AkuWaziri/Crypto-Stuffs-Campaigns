@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
 from collector import RawPost
-from models import SourceAccount
 from onchain import TokenRecord
 from pipeline import run_cycle
 
@@ -14,6 +13,8 @@ class FakeProvider:
             return [RawPost("1", "$DOGE payments are coming to X", "https://x.com/1", NOW - timedelta(minutes=1), 1000)]
         if source.handle == "saylor":
             return [RawPost("2", "DOGE payments could change crypto adoption", "https://x.com/2", NOW - timedelta(minutes=2), 500)]
+        if source.handle == "lookonchain":
+            return [RawPost("3", "DOGE payment activity is accelerating", "https://x.com/3", NOW - timedelta(minutes=3), 800)]
         return []
 
 
@@ -31,7 +32,7 @@ def test_pipeline_collects_qualifies_and_intelligently_ranks():
     signals, narratives, verifications, qualifications, assessments, intelligence = run_cycle(
         provider=FakeProvider(), token_provider=EmptyChainProvider(), now=NOW
     )
-    assert len(signals) == 2
+    assert len(signals) == 3
     assert len(narratives) == 1
     assert len(verifications) == 1
     assert qualifications[0].qualified is True
