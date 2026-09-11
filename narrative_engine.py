@@ -15,7 +15,7 @@ STOPWORDS = {
     "crypto", "token", "tokens", "coin", "coins", "market", "markets", "blockchain",
 }
 TOKEN_RE = re.compile(r"(?:\$[A-Za-z][A-Za-z0-9_]{1,14}|#[A-Za-z][A-Za-z0-9_]{1,49}|[A-Za-z][A-Za-z0-9_]{2,49})")
-SPECIAL_RE = re.compile(r"(?:\$[A-Za-z][A-Za-z0-9_]{1,14}|#[A-Za-z][A-Za-z0-9_]{1,49})")
+SPECIAL_RE = re.compile(r"(?:\$[A-Za-z][A-Za-z0-9_]{1,14}|#[A-Za-z][A-Za-z0-9_]{1,49}|\b[A-Z][A-Z0-9]{2,9}\b)")
 
 
 def _terms(text: str) -> set[str]:
@@ -27,7 +27,7 @@ def _terms(text: str) -> set[str]:
 
 
 def _special_terms(text: str) -> set[str]:
-    return {x.lower() for x in SPECIAL_RE.findall(text)}
+    return {x.strip("#$").lower() for x in SPECIAL_RE.findall(text)}
 
 
 def _similarity(a: set[str], b: set[str]) -> float:
@@ -38,8 +38,7 @@ def _similarity(a: set[str], b: set[str]) -> float:
 
 def _should_cluster(a: FreshSignal, b: FreshSignal, threshold: float = 0.20) -> bool:
     """Cluster short posts that share a clear topic while keeping unrelated topics apart."""
-    special_overlap = _special_terms(a.text) & _special_terms(b.text)
-    if special_overlap:
+    if _special_terms(a.text) & _special_terms(b.text):
         return True
     return _similarity(_terms(a.text), _terms(b.text)) >= threshold
 
