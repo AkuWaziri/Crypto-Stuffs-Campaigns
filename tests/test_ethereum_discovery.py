@@ -57,6 +57,51 @@ def test_dexscreener_discovery_only_accepts_ethereum():
     assert result[0].contract == A
 
 
+def test_dexscreener_query_match_on_base_selects_quote_token():
+    class FakeClient:
+        def search_pairs(self, query):
+            return [{
+                "chainId": "ethereum",
+                "baseToken": {"address": B, "symbol": "WETH", "name": "Wrapped Ether"},
+                "quoteToken": {"address": A, "symbol": "TEST", "name": "Test Token"},
+                "pairAddress": PAIR,
+            }]
+
+    result = DexScreenerDiscovery(FakeClient()).discover("WETH")
+    assert len(result) == 1
+    assert result[0].contract == A
+
+
+def test_dexscreener_query_match_on_quote_selects_base_token():
+    class FakeClient:
+        def search_pairs(self, query):
+            return [{
+                "chainId": "ethereum",
+                "baseToken": {"address": A, "symbol": "TEST", "name": "Test Token"},
+                "quoteToken": {"address": B, "symbol": "WETH", "name": "Wrapped Ether"},
+                "pairAddress": PAIR,
+            }]
+
+    result = DexScreenerDiscovery(FakeClient()).discover("WETH")
+    assert len(result) == 1
+    assert result[0].contract == A
+
+
+def test_dexscreener_address_query_matches_either_pair_side():
+    class FakeClient:
+        def search_pairs(self, query):
+            return [{
+                "chainId": "ethereum",
+                "baseToken": {"address": A, "symbol": "TEST"},
+                "quoteToken": {"address": B, "symbol": "WETH"},
+                "pairAddress": PAIR,
+            }]
+
+    result = DexScreenerDiscovery(FakeClient()).discover(B.upper())
+    assert len(result) == 1
+    assert result[0].contract == A
+
+
 def test_pair_created_discovery_decodes_topics_and_data():
     class FakeRPC:
         def get_logs(self, params):
