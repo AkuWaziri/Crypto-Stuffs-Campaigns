@@ -36,8 +36,12 @@ def _similarity(a: set[str], b: set[str]) -> float:
     return len(a & b) / len(a | b)
 
 
-def _should_cluster(a: FreshSignal, b: FreshSignal, threshold: float = 0.34) -> bool:
-    return bool(_special_terms(a.text) & _special_terms(b.text)) or _similarity(_terms(a.text), _terms(b.text)) >= threshold
+def _should_cluster(a: FreshSignal, b: FreshSignal, threshold: float = 0.25) -> bool:
+    """Cluster closely related short posts while preserving unrelated narratives."""
+    special_overlap = _special_terms(a.text) & _special_terms(b.text)
+    if special_overlap:
+        return True
+    return _similarity(_terms(a.text), _terms(b.text)) >= threshold
 
 
 def _cluster(signals: list[FreshSignal]) -> list[list[FreshSignal]]:
