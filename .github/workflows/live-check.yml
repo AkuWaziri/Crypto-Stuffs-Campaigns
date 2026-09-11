@@ -1,0 +1,88 @@
+name: EVMBot Live Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  live-check:
+    runs-on: ubuntu-latest
+    env:
+      ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Verify Ethereum RPC
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import os
+          from evm_rpc import EVMRPCClient
+
+          rpc_url = os.environ.get("ETH_RPC_URL", "")
+          if not rpc_url:
+              raise SystemExit("ETH_RPC_URL secret is missing")
+
+          client = EVMRPCClient(rpc_url, timeout_seconds=15, cache_ttl_seconds=0)
+          chain_id = client.chain_id()
+          block_number = client.get_block_number()
+
+          if chain_id != 1:
+              raise SystemExit(f"Unexpected Ethereum chain ID: {chain_id}")
+
+          print("Ethereum RPC: OK")
+          print(f"Chain ID: {chain_id}")
+          print(f"Block: {block_number}")
+          PY
+
+      - name: Verify Telegram
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.parse
+          import urllib.request
+
+          token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+
+          if not token:
+              raise SystemExit("TELEGRAM_BOT_TOKEN secret is missing")
+          if not chat_id:
+              raise SystemExit("TELEGRAM_CHAT_ID secret is missing")
+
+          base = f"https://api.telegram.org/bot{token}"
+
+          with urllib.request.urlopen(f"{base}/getMe", timeout=15) as response:
+              result = json.load(response)
+
+          if not result.get("ok"):
+              raise SystemExit("Telegram bot authentication failed")
+
+          message = {
+              "chat_id": chat_id,
+              "text": "🟢 EVMBot live connection test\nEthereum RPC + Telegram secrets are working"
+          }
+          body = urllib.parse.urlencode(message).encode()
+          request = urllib.request.Request(
+              f"{base}/sendMessage",
+              data=body,
+              method="POST",
+          )
+
+          with urllib.request.urlopen(request, timeout=15) as response:
+              result = json.load(response)
+
+          if not result.get("ok"):
+              raise SystemExit("Telegram message delivery failed")
+
+          print("Telegram: OK")
+          print("Test message delivered")
+          PY
