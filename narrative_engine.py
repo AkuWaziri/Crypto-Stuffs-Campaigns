@@ -71,6 +71,16 @@ def _title(group: list[FreshSignal]) -> str:
     return " / ".join(term for term, _ in counts.most_common(4)) or "emerging crypto narrative"
 
 
+def _freshness_score(group: list[FreshSignal], now: datetime, max_age_minutes: int) -> float:
+    if not group:
+        return 0.0
+    newest_age = max(0.0, (now - max(signal.published_at for signal in group)).total_seconds())
+    window_seconds = max_age_minutes * 60
+    if window_seconds <= 0:
+        return 100.0 if newest_age <= 0 else 0.0
+    return max(0.0, min(100.0, 100.0 - (newest_age / window_seconds) * 100.0))
+
+
 def build_narratives(signals: Iterable[FreshSignal], now: datetime | None = None, max_age_minutes: int = 5) -> list[Narrative]:
     """Build auditable narrative candidates without an LLM or execution capability."""
     now = now or datetime.now(timezone.utc)
@@ -96,6 +106,7 @@ def build_narratives(signals: Iterable[FreshSignal], now: datetime | None = None
             crypto_relevance_score=round(crypto_relevance, 2),
             velocity_score=_velocity(group),
             existing_token_penalty=0.0,
+            freshness_score_override=round(_freshness_score(group, now, max_age_minutes), 2),
         ))
 
     return sorted(narratives, key=lambda n: n.trend_score, reverse=True)
