@@ -4,10 +4,10 @@ import os
 
 
 APP_NAME = "TrendsBot"
-MODE = os.getenv("TRENDSBOT_MODE", "test").lower()
-SCAN_INTERVAL_MINUTES = int(os.getenv("SCAN_INTERVAL_MINUTES", "240"))
-MAX_SIGNAL_AGE_MINUTES = int(os.getenv("MAX_SIGNAL_AGE_MINUTES", "5"))
+SCAN_INTERVAL_MINUTES = int(os.getenv("SCAN_INTERVAL_MINUTES", "30"))
+MAX_SIGNAL_AGE_MINUTES = int(os.getenv("MAX_SIGNAL_AGE_MINUTES", "60"))
 MAX_LAUNCHES_PER_CYCLE = int(os.getenv("MAX_LAUNCHES_PER_CYCLE", "2"))
+MODE = os.getenv("TRENDSBOT_MODE", "test").lower()
 INTELLIGENCE_PROVIDER = os.getenv("INTELLIGENCE_PROVIDER", "deterministic").lower()
 
 # Hard safety boundaries for the current intelligence-only phase.
