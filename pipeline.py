@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 from collector import collect_fresh_signals
 from config import MAX_SIGNAL_AGE_MINUTES
+from intelligence_engine import assess_narratives, decide_intelligence
+from intelligence_models import IntelligenceAssessment, IntelligenceDecision
 from narrative_engine import build_narratives
 from onchain import EmptyTokenSearchProvider, TokenSearchProvider
 from qualification import QualificationResult, rank_verified
@@ -12,15 +14,21 @@ from sources import enabled_sources
 from x_provider import XRecentSearchProvider
 
 
-def run_cycle(*, provider=None, token_provider: TokenSearchProvider | None = None, now: datetime | None = None):
+def run_cycle(
+    *,
+    provider=None,
+    token_provider: TokenSearchProvider | None = None,
+    intelligence_provider=None,
+    now: datetime | None = None,
+):
     """Run one read-only intelligence cycle.
 
-    The cycle ends at verified qualification. No token creation, wallet signing,
-    buying, selling, or trading is reachable from this pipeline.
+    No token creation, wallet signing, buying, selling, or trading is reachable.
     """
     current = now or datetime.now(timezone.utc)
     social_provider = provider or XRecentSearchProvider()
     chain_provider = token_provider or EmptyTokenSearchProvider()
+
     signals = collect_fresh_signals(
         social_provider,
         enabled_sources(),
@@ -34,4 +42,14 @@ def run_cycle(*, provider=None, token_provider: TokenSearchProvider | None = Non
     )
     verifications = verify_many(narratives, chain_provider)
     qualifications: list[QualificationResult] = rank_verified(narratives, verifications)
-    return signals, narratives, verifications, qualifications
+
+    verified_narratives = {
+        item.narrative_id
+        for item in qualifications
+        if item.qualified
+    }
+    candidates = [item for item in narratives if item.narrative_id in verified_narratives]
+    assessments: list[IntelligenceAssessment] = assess_narratives(candidates, intelligence_provider)
+    intelligence: list[IntelligenceDecision] = decide_intelligence(assessments)
+
+    return signals, narratives, verifications, qualifications, assessments, intelligence
