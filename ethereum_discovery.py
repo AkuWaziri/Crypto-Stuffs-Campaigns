@@ -47,6 +47,14 @@ def _pair_contracts_from_log(log: dict[str, Any]) -> tuple[str, str]:
     return token0, token1
 
 
+def _pair_address_from_data(data: Any) -> str:
+    if not isinstance(data, str) or not data.startswith("0x") or len(data) < 66:
+        raise DiscoveryValidationError("PairCreated log has invalid data")
+    # Uniswap V2-style PairCreated data is (pair address, pair index), both ABI-encoded.
+    pair_word = data[2:66]
+    return normalize_address("0x" + pair_word[-40:])
+
+
 class DexScreenerDiscovery:
     source_name = "dexscreener"
 
@@ -107,7 +115,7 @@ class PairCreatedDiscovery:
             for log in logs:
                 try:
                     token0, token1 = _pair_contracts_from_log(log)
-                    pair = normalize_address(str(log.get("data", ""))[-40:])
+                    pair = _pair_address_from_data(log.get("data"))
                     block = int(str(log.get("blockNumber", "0")), 16)
                 except (DiscoveryValidationError, ValueError, TypeError) as exc:
                     raise DiscoveryValidationError("Invalid PairCreated log") from exc
