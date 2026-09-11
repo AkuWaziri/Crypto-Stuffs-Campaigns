@@ -3,8 +3,7 @@ from datetime import datetime, timezone
 import pytest
 
 from llm_intelligence import LLMIntelligenceProvider
-from models import FreshSignal, Narrative
-from sources import SourceAccount
+from models import FreshSignal, Narrative, SourceAccount
 
 
 NOW = datetime(2026, 9, 11, 12, 0, tzinfo=timezone.utc)
@@ -19,8 +18,6 @@ def narrative():
         url="https://x.com/example/1",
         published_at=NOW,
         engagement=100,
-        age_seconds=0,
-        is_fresh=True,
     )
     return Narrative(
         narrative_id="n1",
@@ -31,7 +28,6 @@ def narrative():
         crypto_relevance_score=95,
         velocity_score=70,
         existing_token_penalty=0,
-        authority_score=98,
     )
 
 
@@ -39,7 +35,7 @@ def response(data):
     return {"choices": [{"message": {"content": __import__("json").dumps(data)}}]}
 
 
-def test_llm_provider_parses_structured_assessment(monkeypatch):
+def test_llm_provider_parses_structured_assessment():
     data = {
         "event_summary": "X payment discussion",
         "canonical_topic": "DOGE payments",
