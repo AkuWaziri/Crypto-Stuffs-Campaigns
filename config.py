@@ -8,6 +8,7 @@ MODE = os.getenv("TRENDSBOT_MODE", "test").lower()
 SCAN_INTERVAL_MINUTES = int(os.getenv("SCAN_INTERVAL_MINUTES", "240"))
 MAX_SIGNAL_AGE_MINUTES = int(os.getenv("MAX_SIGNAL_AGE_MINUTES", "5"))
 MAX_LAUNCHES_PER_CYCLE = int(os.getenv("MAX_LAUNCHES_PER_CYCLE", "2"))
+INTELLIGENCE_PROVIDER = os.getenv("INTELLIGENCE_PROVIDER", "deterministic").lower()
 
 # Hard safety boundaries for the current intelligence-only phase.
 TOKEN_LAUNCH_ENABLED = os.getenv("TOKEN_LAUNCH_ENABLED", "false").lower() == "true"
@@ -16,6 +17,9 @@ SELF_BUY_ENABLED = False
 
 if MODE not in {"test", "observation", "production"}:
     raise ValueError("TRENDSBOT_MODE must be test, observation, or production")
+
+if INTELLIGENCE_PROVIDER not in {"deterministic", "llm"}:
+    raise ValueError("INTELLIGENCE_PROVIDER must be deterministic or llm")
 
 if SCAN_INTERVAL_MINUTES < 1:
     raise ValueError("SCAN_INTERVAL_MINUTES must be positive")
