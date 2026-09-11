@@ -6,6 +6,7 @@ from collector import collect_fresh_signals
 from config import MAX_SIGNAL_AGE_MINUTES
 from intelligence_engine import assess_narratives, decide_intelligence
 from intelligence_models import IntelligenceAssessment, IntelligenceDecision
+from launch_plan import LaunchPlan, build_launch_plans
 from narrative_engine import build_narratives
 from onchain import EmptyTokenSearchProvider, TokenSearchProvider
 from qualification import QualificationResult, rank_verified
@@ -24,6 +25,7 @@ def run_cycle(
     """Run one read-only intelligence cycle.
 
     No token creation, wallet signing, buying, selling, or trading is reachable.
+    Final launch plans are research-only pairings for qualified recent narratives.
     """
     current = now or datetime.now(timezone.utc)
     social_provider = provider or XRecentSearchProvider()
@@ -51,5 +53,6 @@ def run_cycle(
     candidates = [item for item in narratives if item.narrative_id in verified_narratives]
     assessments: list[IntelligenceAssessment] = assess_narratives(candidates, intelligence_provider)
     intelligence: list[IntelligenceDecision] = decide_intelligence(assessments)
+    launch_plans: list[LaunchPlan] = build_launch_plans(candidates, intelligence)
 
-    return signals, narratives, verifications, qualifications, assessments, intelligence
+    return signals, narratives, verifications, qualifications, assessments, intelligence, launch_plans
