@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from collector import RawPost
 from models import SourceAccount
+from onchain import TokenRecord
 from pipeline import run_cycle
 
 NOW = datetime(2026, 9, 11, 12, 0, tzinfo=timezone.utc)
@@ -16,11 +17,33 @@ class FakeProvider:
         return []
 
 
-def test_pipeline_collects_and_clusters_without_execution():
-    signals, narratives = run_cycle(provider=FakeProvider(), now=NOW)
+class EmptyChainProvider:
+    def search_tokens(self, query):
+        return []
+
+
+class SaturatedChainProvider:
+    def search_tokens(self, query):
+        return [TokenRecord("mint", "DOGE", "Dogecoin", liquidity_usd=2_000_000, volume_24h_usd=20_000_000, holder_count=20_000)]
+
+
+def test_pipeline_collects_and_qualifies_without_execution():
+    signals, narratives, verifications, qualifications = run_cycle(
+        provider=FakeProvider(), token_provider=EmptyChainProvider(), now=NOW
+    )
     assert len(signals) == 2
     assert len(narratives) == 1
-    assert len(narratives[0].signals) == 2
+    assert len(verifications) == 1
+    assert len(qualifications) == 1
+    assert qualifications[0].qualified is True
+
+
+def test_pipeline_rejects_saturated_existing_token():
+    _, _, verifications, qualifications = run_cycle(
+        provider=FakeProvider(), token_provider=SaturatedChainProvider(), now=NOW
+    )
+    assert verifications[0].saturated is True
+    assert qualifications[0].qualified is False
 
 
 def test_pipeline_uses_only_enabled_sources():
@@ -28,6 +51,8 @@ def test_pipeline_uses_only_enabled_sources():
         def recent_posts(self, source, *, since):
             return []
 
-    signals, narratives = run_cycle(provider=Provider(), now=NOW)
+    signals, narratives, verifications, qualifications = run_cycle(provider=Provider(), now=NOW)
     assert signals == []
     assert narratives == []
+    assert verifications == []
+    assert qualifications == []
