@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+import ethereum_market_data
 from ethereum_market_data import (
     DexScreenerClient,
     MarketDataProviderError,
@@ -81,3 +82,29 @@ def test_dexscreener_client_rejects_bad_json():
     client = DexScreenerClient(get=lambda url: b"not-json")
     with pytest.raises(MarketDataProviderError):
         client.search_pairs("WETH")
+
+
+def test_default_get_sets_api_request_headers(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b"{}"
+
+    def fake_urlopen(request, timeout):
+        captured["request"] = request
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(ethereum_market_data.urllib.request, "urlopen", fake_urlopen)
+    assert ethereum_market_data._default_get("https://api.dexscreener.com/latest/dex/search?q=WETH") == b"{}"
+    request = captured["request"]
+    assert request.get_header("Accept") == "application/json"
+    assert request.get_header("User-agent") == "EVMBot/1.0 (read-only market intelligence)"
+    assert captured["timeout"] == 15
