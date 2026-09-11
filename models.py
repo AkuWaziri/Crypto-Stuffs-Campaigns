@@ -48,9 +48,12 @@ class Narrative:
     crypto_relevance_score: float = 0.0
     velocity_score: float = 0.0
     existing_token_penalty: float = 0.0
+    freshness_score_override: float | None = None
 
     @property
     def freshness_score(self) -> float:
+        if self.freshness_score_override is not None:
+            return max(0.0, min(100.0, self.freshness_score_override))
         if not self.signals:
             return 0.0
         newest = min(signal.age_seconds for signal in self.signals)
