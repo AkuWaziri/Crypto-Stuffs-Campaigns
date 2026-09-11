@@ -4,10 +4,10 @@ from evm_contract_security import (
     ContractValidationError,
     inspect_erc20,
 )
+from ethereum_rpc import EthereumRPCProviderError
 
 ADDRESS = "0x1111111111111111111111111111111111111111"
 ZERO_UINT = "0x" + ("0" * 64)
-ONE_UINT = "0x" + ("0" * 63) + "1"
 
 
 class FakeRPC:
@@ -24,7 +24,7 @@ class FakeRPC:
     def eth_call(self, transaction, block="latest"):
         self.calls.append(("eth_call", transaction, block))
         if self.fail_core:
-            raise RuntimeError("provider unavailable")
+            raise EthereumRPCProviderError("provider unavailable")
         selector = transaction["data"][:10]
         if selector == "0x18160ddd":
             return "0x" + ("0" * 63) + "5"
