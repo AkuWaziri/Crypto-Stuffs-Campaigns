@@ -29,7 +29,7 @@ class SaturatedChainProvider:
 
 
 def test_pipeline_collects_qualifies_and_intelligently_ranks():
-    signals, narratives, verifications, qualifications, assessments, intelligence = run_cycle(
+    signals, narratives, verifications, qualifications, assessments, intelligence, launch_plans = run_cycle(
         provider=FakeProvider(), token_provider=EmptyChainProvider(), now=NOW
     )
     assert len(signals) == 3
@@ -39,16 +39,19 @@ def test_pipeline_collects_qualifies_and_intelligently_ranks():
     assert len(assessments) == 1
     assert len(intelligence) == 1
     assert intelligence[0].qualified is True
+    assert len(launch_plans) == 1
+    assert launch_plans[0].pairing.stock.symbol == "AAPL"
 
 
 def test_pipeline_rejects_saturated_existing_token():
-    _, _, verifications, qualifications, assessments, intelligence = run_cycle(
+    _, _, verifications, qualifications, assessments, intelligence, launch_plans = run_cycle(
         provider=FakeProvider(), token_provider=SaturatedChainProvider(), now=NOW
     )
     assert verifications[0].saturated is True
     assert qualifications[0].qualified is False
     assert assessments == []
     assert intelligence == []
+    assert launch_plans == []
 
 
 def test_pipeline_uses_only_enabled_sources():
@@ -56,7 +59,7 @@ def test_pipeline_uses_only_enabled_sources():
         def recent_posts(self, source, *, since):
             return []
 
-    signals, narratives, verifications, qualifications, assessments, intelligence = run_cycle(
+    signals, narratives, verifications, qualifications, assessments, intelligence, launch_plans = run_cycle(
         provider=Provider(), now=NOW
     )
     assert signals == []
@@ -65,3 +68,4 @@ def test_pipeline_uses_only_enabled_sources():
     assert qualifications == []
     assert assessments == []
     assert intelligence == []
+    assert launch_plans == []
