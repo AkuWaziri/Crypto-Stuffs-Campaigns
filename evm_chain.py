@@ -1,7 +1,7 @@
 """Chain-agnostic configuration for EVM networks.
 
 The intelligence engine uses this model instead of hard-coding Ethereum.
-Ethereum is the first enabled chain; additional EVM chains can be added as
+Ethereum is the first production chain; additional EVM chains can be added as
 configuration without changing the analysis layers.
 """
 
@@ -32,12 +32,8 @@ class EVMChainConfig:
             raise ValueError(f"native_symbol is required for {self.name}")
         if self.explorer_url and not self.explorer_url.startswith("https://"):
             raise ValueError(f"explorer_url must use HTTPS for {self.name}")
-        if self.dexscreener_chain_id and not self.dexscreener_chain_id.strip():
-            raise ValueError(f"invalid DexScreener chain id for {self.name}")
 
 
-# Ethereum remains the first chain. Chain-specific market/discovery settings
-# stay outside the core EVM analysis engine.
 def ethereum_chain(rpc_url: str) -> EVMChainConfig:
     return EVMChainConfig(
         name="Ethereum",
@@ -50,16 +46,25 @@ def ethereum_chain(rpc_url: str) -> EVMChainConfig:
     )
 
 
-def arc_chain(rpc_url: str) -> EVMChainConfig:
-    """Arc network configuration target.
-
-    RPC/provider and DEX settings are intentionally supplied by the caller;
-    no live Arc endpoint is hard-coded into the engine.
-    """
+def arc_testnet_chain(rpc_url: str) -> EVMChainConfig:
+    """Arc Testnet configuration for development/adapter testing."""
     return EVMChainConfig(
-        name="Arc",
+        name="Arc Testnet",
         chain_id=5042002,
         rpc_url=rpc_url,
         native_symbol="USDC",
+        explorer_url="https://testnet.arc-scan.org",
+        dexscreener_chain_id="arc",
+    )
+
+
+def arc_mainnet_chain(rpc_url: str) -> EVMChainConfig:
+    """Arc Mainnet configuration target; endpoint supplied by the caller."""
+    return EVMChainConfig(
+        name="Arc",
+        chain_id=5042,
+        rpc_url=rpc_url,
+        native_symbol="USDC",
+        explorer_url="https://arc-scan.org",
         dexscreener_chain_id="arc",
     )
