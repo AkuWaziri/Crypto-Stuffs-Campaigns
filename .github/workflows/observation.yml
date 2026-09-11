@@ -3,7 +3,7 @@ name: TrendsBot Observation
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */4 * * *"
+    - cron: "*/30 * * * *"
 
 jobs:
   observe:
@@ -24,8 +24,7 @@ jobs:
         env:
           PYTHONPATH: .
           TRENDSBOT_MODE: observation
-          SCAN_INTERVAL_MINUTES: "240"
-          MAX_SIGNAL_AGE_MINUTES: "5"
+          SCAN_INTERVAL_MINUTES: "30"
+          MAX_SIGNAL_AGE_MINUTES: "60"
           MAX_LAUNCHES_PER_CYCLE: "2"
-          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
         run: python run_observation.py
