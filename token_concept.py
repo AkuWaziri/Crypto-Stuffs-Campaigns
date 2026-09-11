@@ -19,9 +19,18 @@ def _words(text: str) -> list[str]:
     return [word.upper() for word in re.findall(r"[A-Za-z0-9]{3,}", text)]
 
 
+def _symbol(narrative: Narrative) -> str:
+    for signal in narrative.signals:
+        match = re.search(r"\$([A-Za-z][A-Za-z0-9]{1,9})", signal.text)
+        if match:
+            return match.group(1).upper()
+    words = _words(narrative.title)
+    return "".join(words[:3])[:10] or "TREND"
+
+
 def build_concept(narrative: Narrative) -> TokenConcept:
     words = _words(narrative.title)
-    symbol = "".join(words[:3])[:10] or "TREND"
+    symbol = _symbol(narrative)
     name = " ".join(word.title() for word in words[:4]) or "Emerging Trend"
     thesis = (
         f"Concept derived from the emerging narrative: {narrative.title}. "
