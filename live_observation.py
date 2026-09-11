@@ -4,8 +4,8 @@ import time
 from dataclasses import dataclass
 from ethereum_discovery import DexScreenerDiscovery, deduplicate_candidates
 from ethereum_market_data import DexScreenerClient, select_best_pair
-from ethereum_rpc import EVMRPCClient
-from evm_contract_security import inspect_erc20, ContractSecurityError
+from evm_rpc import EVMRPCClient
+from evm_contract_security import inspect_erc20
 from evm_holder_intelligence import inspect_holders
 from evm_early_buyer_intelligence import EarlyBuyerReport
 from evm_funding_intelligence import FundingReport
@@ -36,17 +36,18 @@ def observe(rpc_url: str, query: str = "WETH", limit: int = 5, holder_window: in
     discovery = DexScreenerDiscovery(DexScreenerClient())
     candidates = deduplicate_candidates(discovery.discover(query, max_results=max(limit * 3, limit)))
     now_ms = int(time.time() * 1000)
-    try: latest_block = rpc.get_block_number()
-    except Exception: latest_block = 0
+    try:
+        latest_block = rpc.get_block_number()
+    except Exception:
+        latest_block = 0
     observations=[]
     for candidate in candidates[:limit]:
         try:
             market = select_best_pair(DexScreenerClient().token_pairs(candidate.contract), now_ms=now_ms)
             security = inspect_erc20(rpc, candidate.contract)
-            if latest_block:
-                holders = inspect_holders(rpc, candidate.contract, max(0, latest_block-holder_window), latest_block, excluded_addresses=[market.pair])
-            else:
+            if not latest_block:
                 raise RuntimeError("latest block unavailable")
+            holders = inspect_holders(rpc, candidate.contract, max(0, latest_block-holder_window), latest_block, excluded_addresses=[market.pair])
             early = EarlyBuyerReport(candidate.contract, 0, 0, (market.pair,), warnings=("EARLY_BUYER_LAUNCH_BLOCK_NOT_RESOLVED",))
             funding = FundingReport(candidate.contract, (), 0, 0, 0, warnings=("DEPLOYER_ANCHOR_NOT_RESOLVED",))
             cluster = inspect_address_clusters(holder_addresses=[h.address for h in holders.holders])
