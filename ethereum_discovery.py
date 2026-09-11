@@ -55,6 +55,46 @@ def _pair_address_from_data(data: Any) -> str:
     return normalize_address("0x" + pair_word[-40:])
 
 
+def _token_matches_query(token: dict[str, Any], query: str) -> bool:
+    """Return whether a DexScreener token is the token named by the discovery query."""
+    address = token.get("address")
+    if isinstance(address, str) and is_eth_address(query):
+        try:
+            return normalize_address(address) == normalize_address(query)
+        except DiscoveryValidationError:
+            return False
+
+    normalized_query = query.strip().lower()
+    if not normalized_query:
+        return False
+    return any(
+        isinstance(token.get(field), str) and token[field].strip().lower() == normalized_query
+        for field in ("symbol", "name")
+    )
+
+
+def _select_candidate_token(pair: dict[str, Any], query: str) -> dict[str, Any] | None:
+    """Select the token to analyze, handling queries that appear on either pair side."""
+    base = pair.get("baseToken")
+    quote = pair.get("quoteToken")
+    if not isinstance(base, dict):
+        return None
+    if not isinstance(quote, dict):
+        return base
+
+    base_matches = _token_matches_query(base, query)
+    quote_matches = _token_matches_query(quote, query)
+
+    if base_matches and not quote_matches:
+        return quote
+    if quote_matches and not base_matches:
+        return base
+
+    # Preserve the previous behavior for generic searches where neither side
+    # explicitly matches the query.
+    return base
+
+
 class DexScreenerDiscovery:
     source_name = "dexscreener"
 
@@ -67,11 +107,11 @@ class DexScreenerDiscovery:
         for pair in pairs[:max_results]:
             if pair.get("chainId") != "ethereum":
                 continue
-            base = pair.get("baseToken")
-            if not isinstance(base, dict):
+            candidate_token = _select_candidate_token(pair, query)
+            if not isinstance(candidate_token, dict):
                 continue
             try:
-                contract = normalize_address(str(base.get("address", "")))
+                contract = normalize_address(str(candidate_token.get("address", "")))
                 pair_address = normalize_address(str(pair.get("pairAddress", "")))
             except DiscoveryValidationError:
                 continue
