@@ -4,6 +4,7 @@ import json
 import os
 from dataclasses import dataclass
 
+from config import MAX_LAUNCHES_PER_CYCLE
 from intelligence_models import IntelligenceDecision
 from models import Narrative
 from tokenized_stock_pairing import PairingCandidate, build_pairing_candidate
@@ -21,7 +22,7 @@ def build_launch_plans(
     narratives: list[Narrative],
     decisions: list[IntelligenceDecision],
     *,
-    max_results: int = 2,
+    max_results: int = MAX_LAUNCHES_PER_CYCLE,
 ) -> list[LaunchPlan]:
     by_id = {item.narrative_id: item for item in narratives}
     plans: list[LaunchPlan] = []
@@ -31,7 +32,6 @@ def build_launch_plans(
         try:
             stocks = verified_preferred_stocks(XStocksPublicProvider())
         except (OSError, RuntimeError, ValueError, json.JSONDecodeError):
-            # Pairing must fail closed if live tokenized-stock verification fails.
             return []
 
     for decision in decisions:
