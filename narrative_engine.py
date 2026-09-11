@@ -95,7 +95,8 @@ def build_narratives(signals: Iterable[FreshSignal], now: datetime | None = None
         max_engagement = max((s.engagement for s in group), default=0)
         authority_score = min(100.0, max((s.source.authority_score for s in group), default=0) + min(max_engagement / 1000, 10))
         novelty_score = min(100.0, 35 + len(counts) * 5 + (15 if len(unique_sources) > 1 else 0))
-        crypto_relevance = 100.0 if any(t in {"solana", "bitcoin", "ethereum", "defi", "memecoin", "memecoins", "airdrop", "stablecoin"} for t in counts) else 65.0
+        crypto_terms = {"solana", "bitcoin", "ethereum", "defi", "memecoin", "memecoins", "airdrop", "stablecoin", "doge", "dogecoin"}
+        crypto_relevance = 100.0 if any(t in crypto_terms for t in counts) else 65.0
         meme_potential = min(100.0, 35 + len(unique_sources) * 12 + min(len(counts), 6) * 5)
         narratives.append(Narrative(
             narrative_id=f"nar-{index}-{group[0].signal_id}",
