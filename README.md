@@ -1,12 +1,27 @@
-# Ethereum Bot
+# EVM Intelligence Bot
 
-Read-only Ethereum token intelligence and qualification system.
+Read-only EVM token intelligence and qualification system. Ethereum mainnet is the first production chain; the engine is being built so Arc and other EVM chains can be added by configuration.
 
 ## Mission
 
 DISCOVER → ANALYZE → SCORE → RISK-CHECK → QUALIFY → REPORT TO TELEGRAM
 
 The system is research-only. It never trades, buys, sells, swaps, approves, signs, submits transactions, loads private keys, or connects wallets.
+
+## Architecture
+
+The core analysis layers are chain-agnostic EVM components. Chain-specific information is configuration:
+
+- chain ID
+- RPC endpoint
+- explorer
+- native gas asset
+- wrapped native asset where applicable
+- market/discovery identifiers
+- DEX/factory configuration
+- provider capabilities
+
+Ethereum remains the first enabled chain. Arc is being prepared as a separate EVM adapter; Arc Testnet is chain ID `5042002`, while Arc Mainnet is chain ID `5042`. Testnet and mainnet are never treated as the same network.
 
 ## Initial scope
 
@@ -40,6 +55,13 @@ The system is research-only. It never trades, buys, sells, swaps, approves, sign
 - Market fields are normalized and validated fail-closed
 - Provider failures are distinct from invalid/risky data
 - No Solana-specific discovery logic is reused here
+
+### EVM architecture transition
+
+- Added `EVMChainConfig` for chain-independent network configuration
+- Added generic `EVMRPCClient` adapter while preserving the proven Stage 1 RPC boundary
+- Added Ethereum, Arc Testnet, and Arc Mainnet configuration targets
+- Existing Ethereum modules remain intact until their EVM interfaces are needed by the next stage
 
 ## Research foundation
 
