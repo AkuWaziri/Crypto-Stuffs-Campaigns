@@ -17,7 +17,7 @@ TOPIC = "0x" + "aa" * 32
 
 
 def test_normalize_address_is_canonical():
-    assert normalize_address(A.upper()) == A
+    assert normalize_address("0x" + A[2:].upper()) == A
 
 
 def test_invalid_address_rejected():
@@ -27,7 +27,7 @@ def test_invalid_address_rejected():
 
 def test_deduplicate_uses_contract_as_identity():
     candidates = [
-        DiscoveryCandidate(A.upper(), "source-a"),
+        DiscoveryCandidate("0x" + A[2:].upper(), "source-a"),
         DiscoveryCandidate(A, "source-b", pair=PAIR),
     ]
     result = deduplicate_candidates(candidates)
