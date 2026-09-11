@@ -40,7 +40,7 @@ def test_pipeline_collects_qualifies_and_intelligently_ranks():
     assert len(intelligence) == 1
     assert intelligence[0].qualified is True
     assert len(launch_plans) == 1
-    assert launch_plans[0].pairing.stock.symbol == "AAPL"
+    assert launch_plans[0].pairing.stock.symbol == "AAPLx"
 
 
 def test_pipeline_rejects_saturated_existing_token():
