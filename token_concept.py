@@ -25,7 +25,9 @@ def _symbol(narrative: Narrative) -> str:
         if match:
             return match.group(1).upper()
     words = _words(narrative.title)
-    return "".join(words[:3])[:10] or "TREND"
+    if words and len(words[0]) <= 6:
+        return words[0]
+    return "TREND"
 
 
 def build_concept(narrative: Narrative) -> TokenConcept:
