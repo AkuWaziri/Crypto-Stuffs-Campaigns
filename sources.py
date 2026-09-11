@@ -3,17 +3,15 @@ from __future__ import annotations
 from models import SourceAccount
 
 
-# Initial high-signal registry. This is data, not a guarantee that an account
-# produces launch-worthy narratives. The scoring layer decides that separately.
+# Free, public crypto-news feeds. The registry describes source quality;
+# qualification is still decided by the trend-scoring layer.
 SOURCE_ACCOUNTS = [
-    SourceAccount("elonmusk", "Elon Musk", "macro", 98, 85),
-    SourceAccount("saylor", "Michael Saylor", "bitcoin", 96, 90),
-    SourceAccount("VitalikButerin", "Vitalik Buterin", "ethereum", 98, 95),
-    SourceAccount("CathieDWood", "Cathie Wood", "macro", 90, 82),
-    SourceAccount("brian_armstrong", "Brian Armstrong", "exchange", 93, 91),
-    SourceAccount("balajis", "Balaji Srinivasan", "macro_crypto", 94, 84),
-    SourceAccount("cdixon", "Chris Dixon", "web3", 88, 91),
-    SourceAccount("lookonchain", "Lookonchain", "onchain_intelligence", 94, 90),
+    SourceAccount("coindesk", "CoinDesk", "crypto_news", 94, 94),
+    SourceAccount("cointelegraph", "Cointelegraph", "crypto_news", 90, 90),
+    SourceAccount("decrypt", "Decrypt", "crypto_news", 88, 90),
+    SourceAccount("cryptoslate", "CryptoSlate", "crypto_news", 84, 86),
+    SourceAccount("bitcoinmagazine", "Bitcoin Magazine", "bitcoin_news", 88, 88),
+    SourceAccount("thedefiant", "The Defiant", "defi_news", 86, 88),
 ]
 
 
