@@ -29,7 +29,14 @@ HttpGet = Callable[[str], bytes]
 
 
 def _default_get(url: str) -> bytes:
-    request = urllib.request.Request(url, headers={"Accept": "application/json"}, method="GET")
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "EVMBot/1.0 (read-only market intelligence)",
+        },
+        method="GET",
+    )
     try:
         with urllib.request.urlopen(request, timeout=15) as response:
             return response.read()
