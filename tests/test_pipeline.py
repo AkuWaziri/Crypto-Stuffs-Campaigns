@@ -27,23 +27,27 @@ class SaturatedChainProvider:
         return [TokenRecord("mint", "DOGE", "Dogecoin", liquidity_usd=2_000_000, volume_24h_usd=20_000_000, holder_count=20_000)]
 
 
-def test_pipeline_collects_and_qualifies_without_execution():
-    signals, narratives, verifications, qualifications = run_cycle(
+def test_pipeline_collects_qualifies_and_intelligently_ranks():
+    signals, narratives, verifications, qualifications, assessments, intelligence = run_cycle(
         provider=FakeProvider(), token_provider=EmptyChainProvider(), now=NOW
     )
     assert len(signals) == 2
     assert len(narratives) == 1
     assert len(verifications) == 1
-    assert len(qualifications) == 1
     assert qualifications[0].qualified is True
+    assert len(assessments) == 1
+    assert len(intelligence) == 1
+    assert intelligence[0].qualified is True
 
 
 def test_pipeline_rejects_saturated_existing_token():
-    _, _, verifications, qualifications = run_cycle(
+    _, _, verifications, qualifications, assessments, intelligence = run_cycle(
         provider=FakeProvider(), token_provider=SaturatedChainProvider(), now=NOW
     )
     assert verifications[0].saturated is True
     assert qualifications[0].qualified is False
+    assert assessments == []
+    assert intelligence == []
 
 
 def test_pipeline_uses_only_enabled_sources():
@@ -51,8 +55,12 @@ def test_pipeline_uses_only_enabled_sources():
         def recent_posts(self, source, *, since):
             return []
 
-    signals, narratives, verifications, qualifications = run_cycle(provider=Provider(), now=NOW)
+    signals, narratives, verifications, qualifications, assessments, intelligence = run_cycle(
+        provider=Provider(), now=NOW
+    )
     assert signals == []
     assert narratives == []
     assert verifications == []
     assert qualifications == []
+    assert assessments == []
+    assert intelligence == []
