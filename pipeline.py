@@ -10,9 +10,9 @@ from launch_plan import LaunchPlan, build_launch_plans
 from narrative_engine import build_narratives
 from onchain import EmptyTokenSearchProvider, TokenSearchProvider
 from qualification import QualificationResult, rank_verified
+from rss_provider import CryptoRSSProvider
 from solana_verifier import verify_many
 from sources import enabled_sources
-from x_provider import XRecentSearchProvider
 
 
 def run_cycle(
@@ -22,13 +22,14 @@ def run_cycle(
     intelligence_provider=None,
     now: datetime | None = None,
 ):
-    """Run one read-only intelligence cycle.
+    """Run one read-only crypto trend intelligence cycle.
 
+    The default provider uses free public crypto-news RSS feeds.
     No token creation, wallet signing, buying, selling, or trading is reachable.
     Final launch plans are research-only pairings for qualified recent narratives.
     """
     current = now or datetime.now(timezone.utc)
-    social_provider = provider or XRecentSearchProvider()
+    social_provider = provider or CryptoRSSProvider()
     chain_provider = token_provider or EmptyTokenSearchProvider()
 
     signals = collect_fresh_signals(
