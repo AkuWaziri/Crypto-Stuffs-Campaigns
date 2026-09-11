@@ -47,6 +47,16 @@ def _finite_number(value: Any, field: str, *, allow_zero: bool = True) -> float:
     return number
 
 
+def _signed_number(value: Any, field: str) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise MarketDataValidationError(f"Invalid numeric field: {field}") from exc
+    if not math.isfinite(number):
+        raise MarketDataValidationError(f"Impossible numeric field: {field}")
+    return number
+
+
 def _integer(value: Any, field: str) -> int:
     if isinstance(value, bool):
         raise MarketDataValidationError(f"Invalid integer field: {field}")
@@ -119,8 +129,7 @@ class DexScreenerClient:
 
 
 def normalize_dexscreener_pair(pair: dict[str, Any], *, now_ms: int) -> MarketData:
-    chain = pair.get("chainId")
-    if chain != "ethereum":
+    if pair.get("chainId") != "ethereum":
         raise MarketDataValidationError("Market pair is not on Ethereum")
 
     base = pair.get("baseToken")
@@ -155,15 +164,15 @@ def normalize_dexscreener_pair(pair: dict[str, Any], *, now_ms: int) -> MarketDa
     sells_1h = _integer(_pick(pair, "txns", "h1", "sells"), "txns.h1.sells")
     ratio_5m = _ratio(buys_5m, sells_5m, "5m transactions")
     ratio_1h = _ratio(buys_1h, sells_1h, "1h transactions")
-    change_5m = _finite_number(_pick(pair, "priceChange", "m5"), "priceChange.m5", allow_zero=True)
-    change_1h = _finite_number(_pick(pair, "priceChange", "h1"), "priceChange.h1", allow_zero=True)
+    change_5m = _signed_number(_pick(pair, "priceChange", "m5"), "priceChange.m5")
+    change_1h = _signed_number(_pick(pair, "priceChange", "h1"), "priceChange.h1")
 
     if liquidity > fdv:
         raise MarketDataValidationError("Liquidity exceeds FDV")
     if market_cap > fdv * 1.05:
         raise MarketDataValidationError("Market cap contradicts FDV")
-    if volume_5m > volume_1h * 2.0 and volume_1h > 0:
-        raise MarketDataValidationError("5m volume is inconsistent with 1h volume")
+    if volume_5m > volume_1h + 1e-9:
+        raise MarketDataValidationError("5m volume exceeds 1h volume")
 
     return MarketData(
         symbol=symbol.strip(),
