@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
 
 
 def utc_now() -> datetime:
@@ -65,11 +64,12 @@ class Narrative:
 
     @property
     def trend_score(self) -> float:
+        # Weights deliberately sum to 1.0 so a perfect narrative can reach 100.
         score = (
-            self.freshness_score * 0.20
-            + self.authority_score * 0.15
-            + self.velocity_score * 0.15
-            + self.crypto_relevance_score * 0.10
+            self.freshness_score * 0.25
+            + self.authority_score * 0.20
+            + self.velocity_score * 0.20
+            + self.crypto_relevance_score * 0.15
             + self.meme_potential_score * 0.10
             + self.novelty_score * 0.10
         )
