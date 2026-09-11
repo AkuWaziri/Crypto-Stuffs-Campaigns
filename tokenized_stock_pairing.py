@@ -22,14 +22,13 @@ class PairingCandidate:
     reason: str
 
 
-# Registry only. It is deliberately not an execution or trading integration.
-# A production data adapter can replace this registry after live availability is verified.
+# Test-only registry. Production/observation pairing uses the live xStocks adapter.
 DEFAULT_TOKENIZED_STOCKS: tuple[TokenizedStock, ...] = (
-    TokenizedStock("AAPL", "Apple", 95.0, 95.0, "verify-live"),
-    TokenizedStock("TSLA", "Tesla", 92.0, 92.0, "verify-live"),
-    TokenizedStock("NVDA", "NVIDIA", 94.0, 94.0, "verify-live"),
-    TokenizedStock("MSFT", "Microsoft", 93.0, 93.0, "verify-live"),
-    TokenizedStock("AMZN", "Amazon", 91.0, 91.0, "verify-live"),
+    TokenizedStock("AAPLx", "Apple xStock", 95.0, 95.0, "test-verified"),
+    TokenizedStock("TSLAx", "Tesla xStock", 92.0, 92.0, "test-verified"),
+    TokenizedStock("NVDAx", "NVIDIA xStock", 94.0, 94.0, "test-verified"),
+    TokenizedStock("MSFTx", "Microsoft xStock", 93.0, 93.0, "test-verified"),
+    TokenizedStock("AMZNx", "Amazon xStock", 91.0, 91.0, "test-verified"),
 )
 
 
@@ -53,6 +52,6 @@ def build_pairing_candidate(
         stock=stock,
         reason=(
             "Recent attention narrative passed the research gate; pair the concept "
-            "with the highest-quality configured tokenized-stock candidate after live availability verification."
+            "with a verified tokenized-stock candidate."
         ),
     )
