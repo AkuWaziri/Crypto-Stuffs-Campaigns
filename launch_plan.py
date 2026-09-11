@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 
@@ -39,7 +40,11 @@ def build_launch_plans(
         narrative = by_id.get(decision.narrative_id)
         if narrative is None:
             continue
-        pairing = build_pairing_candidate(narrative, stocks) if stocks is not None else build_pairing_candidate(narrative)
+        pairing = (
+            build_pairing_candidate(narrative, stocks)
+            if stocks is not None
+            else build_pairing_candidate(narrative)
+        )
         plans.append(
             LaunchPlan(
                 pairing=pairing,
