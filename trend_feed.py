@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
 
 from models import Narrative
 
@@ -13,8 +12,12 @@ def _clean(text: str, limit: int = 180) -> str:
     return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
 
 
+def _newest_signal(narrative: Narrative):
+    return max(narrative.signals, key=lambda item: item.published_at)
+
+
 def format_trend(narrative: Narrative) -> str:
-    signal = min(narrative.signals, key=lambda item: item.published_at)
+    signal = _newest_signal(narrative)
     title = _clean(narrative.title.title(), 120)
     topic = _clean(signal.text, 220)
 
@@ -37,7 +40,7 @@ def format_feed(narratives: list[Narrative], max_items: int = 5) -> str:
 
     ordered = sorted(
         narratives,
-        key=lambda item: min(signal.published_at for signal in item.signals),
+        key=lambda item: _newest_signal(item).published_at,
         reverse=True,
     )
     return "\n\n━━━━━━━━━━━━━━━━━━━━\n\n".join(
