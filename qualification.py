@@ -26,19 +26,9 @@ def qualify_with_verification(
     if not narrative.signals:
         return QualificationResult(narrative.narrative_id, False, score, "no signals")
     if verification.saturated or verification.best_penalty >= hard_saturation_penalty:
-        return QualificationResult(
-            narrative.narrative_id,
-            False,
-            score,
-            "existing Solana narrative is too saturated",
-        )
+        return QualificationResult(narrative.narrative_id, False, score, "existing Solana narrative is too saturated")
     if narrative.crypto_relevance_score < 60.0:
-        return QualificationResult(
-            narrative.narrative_id,
-            False,
-            score,
-            "crypto relevance below threshold",
-        )
+        return QualificationResult(narrative.narrative_id, False, score, "crypto relevance below threshold")
     if score < threshold:
         return QualificationResult(narrative.narrative_id, False, score, "verified trend score below threshold")
     return QualificationResult(narrative.narrative_id, True, score, "qualified after on-chain verification")
