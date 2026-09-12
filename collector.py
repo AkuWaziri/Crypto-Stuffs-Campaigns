@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Protocol
 
 from freshness import is_within_window
@@ -30,12 +30,13 @@ def collect_fresh_signals(
     max_age_minutes: int = 5,
 ) -> list[FreshSignal]:
     current = now or datetime.now(timezone.utc)
+    window_start = current - timedelta(minutes=max_age_minutes)
     signals: list[FreshSignal] = []
 
     for source in sources:
         if not source.enabled:
             continue
-        posts = provider.recent_posts(source, since=current)
+        posts = provider.recent_posts(source, since=window_start)
         for post in posts:
             if not is_within_window(
                 post.published_at,
