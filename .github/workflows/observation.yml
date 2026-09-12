@@ -3,7 +3,7 @@ name: TrendsBot Observation
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "*/20 * * * *"
 
 jobs:
   observe:
@@ -24,7 +24,7 @@ jobs:
         env:
           PYTHONPATH: .
           TRENDSBOT_MODE: observation
-          SCAN_INTERVAL_MINUTES: "30"
+          SCAN_INTERVAL_MINUTES: "20"
           MAX_SIGNAL_AGE_MINUTES: "60"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
