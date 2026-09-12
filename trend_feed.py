@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import urllib.error
 import urllib.request
 
@@ -16,19 +17,70 @@ def _newest_signal(narrative: Narrative):
     return max(narrative.signals, key=lambda item: item.published_at)
 
 
+def _topic_text(narrative: Narrative) -> str:
+    return " ".join([narrative.title, *[signal.text for signal in narrative.signals]]).lower()
+
+
+def _token_angles(narrative: Narrative) -> tuple[str, str, str]:
+    """Return simple, topic-specific token concepts without scoring or execution."""
+    text = _topic_text(narrative)
+
+    if any(term in text for term in ("airdrop", "airdrop campaign", "claim")):
+        return (
+            "Narrative token: turn the campaign moment into a community token for participants",
+            "Utility angle: points, claim milestones, quests or community access can anchor demand",
+            "Timing angle: the concept is strongest while participation and attention are active",
+        )
+
+    if any(term in text for term in ("stablecoin", "payments", "payment", "usdc", "usdt")):
+        return (
+            "Narrative token: build around the payment rail or stablecoin adoption story",
+            "Utility angle: rewards, merchant/community incentives or access can connect the token to usage",
+            "Timing angle: adoption announcements create the clearest window for a community narrative",
+        )
+
+    if any(term in text for term in ("defi", "lending", "liquidity", "yield", "dex", "staking")):
+        return (
+            "Narrative token: package the protocol or DeFi theme into a community-owned narrative",
+            "Utility angle: governance, participation rewards or access can give the token a defined role",
+            "Timing angle: attention is strongest while usage, launches or liquidity events are accelerating",
+        )
+
+    if any(term in text for term in ("bitcoin", "btc", "ethereum", "eth", "solana", "sol", "base", "arbitrum")):
+        return (
+            "Narrative token: turn the ecosystem story into a simple community/narrative token",
+            "Utility angle: community access, participation rewards or ecosystem campaigns can support it",
+            "Timing angle: the strongest window is when the ecosystem story is actively spreading",
+        )
+
+    if any(term in text for term in ("ai agent", "ai agents", "crypto agent", "crypto agents", "agent")):
+        return (
+            "Narrative token: build around the AI-agent story as a community coordination layer",
+            "Utility angle: access, agent tasks, reputation or participation rewards can define the role",
+            "Timing angle: the concept benefits most while the agent narrative is gaining attention",
+        )
+
+    return (
+        "Narrative token: turn the current crypto story into a simple community/narrative token",
+        "Utility angle: rewards, access, participation or community incentives can give it a clear role",
+        "Timing angle: the concept is strongest while this story is actively getting attention",
+    )
+
+
 def format_trend(narrative: Narrative) -> str:
     signal = _newest_signal(narrative)
     title = _clean(narrative.title.title(), 120)
     topic = _clean(signal.text, 220)
+    angle_one, angle_two, angle_three = _token_angles(narrative)
 
     return (
         f"🔥 <b>TRENDING NOW</b>\n\n"
         f"<b>{title}</b>\n"
         f"{topic}\n\n"
         f"<b>Token creation potential</b>\n"
-        f"• Narrative token: turn the current topic into a simple community/narrative token\n"
-        f"• Utility angle: rewards, access, participation or community incentives around the trend\n"
-        f"• Timing angle: the value proposition is strongest while this story is actively getting attention\n\n"
+        f"• {angle_one}\n"
+        f"• {angle_two}\n"
+        f"• {angle_three}\n\n"
         f"🔗 <a href=\"{signal.url}\">Source</a>\n"
         f"<i>READ-ONLY · NO TOKEN CREATED</i>"
     )
