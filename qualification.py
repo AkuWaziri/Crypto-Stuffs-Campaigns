@@ -32,8 +32,13 @@ def qualify_with_verification(
             score,
             "existing Solana narrative is too saturated",
         )
-    if narrative.meme_potential_score < 70.0:
-        return QualificationResult(narrative.narrative_id, False, score, "meme potential below threshold")
+    if narrative.crypto_relevance_score < 60.0:
+        return QualificationResult(
+            narrative.narrative_id,
+            False,
+            score,
+            "crypto relevance below threshold",
+        )
     if score < threshold:
         return QualificationResult(narrative.narrative_id, False, score, "verified trend score below threshold")
     return QualificationResult(narrative.narrative_id, True, score, "qualified after on-chain verification")
