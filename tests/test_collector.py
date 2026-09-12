@@ -7,8 +7,10 @@ from models import SourceAccount
 class FakeProvider:
     def __init__(self, posts):
         self.posts = posts
+        self.since = None
 
     def recent_posts(self, source, *, since):
+        self.since = since
         return self.posts
 
 
@@ -24,6 +26,7 @@ def test_collector_keeps_only_last_five_minutes():
     ])
     signals = collect_fresh_signals(provider, [source()], now=now, max_age_minutes=5)
     assert [signal.signal_id for signal in signals] == ["fresh"]
+    assert provider.since == now - timedelta(minutes=5)
 
 
 def test_disabled_source_is_not_queried():
