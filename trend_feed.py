@@ -48,7 +48,7 @@ def format_trend(narrative: Narrative, number: int | None = None) -> str:
 
     prefix = f"<b>{number}. {html.escape(headline_raw)}</b>" if number is not None else f"<b>{html.escape(headline_raw)}</b>"
     body = f"\n{html.escape(body_raw)}" if body_raw else ""
-    source_name = html.escape(signal.source.name)
+    source_name = html.escape(signal.source.display_name)
 
     return (
         f"{prefix}{body}\n"
