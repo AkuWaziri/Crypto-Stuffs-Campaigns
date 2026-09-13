@@ -6,6 +6,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 from collector import RawPost
 from models import SourceAccount
@@ -34,17 +35,12 @@ class TwitterAPIsProvider:
             raise TwitterAPIsError("TWITTERAPIS_KEY is not configured")
 
     def recent_posts(self, *, since: datetime, max_results: int = 20) -> list[RawPost]:
-        # Broad crypto discovery: latest posts only, with retweets excluded.
-        # Keep the query focused enough to avoid generic technology chatter.
         query = (
             "(crypto OR bitcoin OR ethereum OR solana OR stablecoin OR defi "
             "OR blockchain OR web3 OR airdrop OR memecoin OR tokenization) "
             "lang:en -is:retweet"
         )
-        params = {
-            "query": query,
-            "product": "Latest",
-        }
+        params = {"query": query, "product": "Latest"}
         url = f"{TWITTERAPIS_SEARCH_URL}?{urllib.parse.urlencode(params)}"
         request = urllib.request.Request(
             url,
@@ -74,28 +70,25 @@ class TwitterAPIsProvider:
                 continue
 
             try:
-                published_at = datetime.fromisoformat(
-                    str(created_at).replace("Z", "+00:00")
-                ).astimezone(timezone.utc)
-            except ValueError:
+                published_at = parsedate_to_datetime(str(created_at)).astimezone(timezone.utc)
+            except (TypeError, ValueError, OverflowError):
                 continue
 
             if published_at < since:
                 continue
 
-            metrics = item.get("public_metrics") or {}
             engagement = sum(
-                int(metrics.get(key, 0) or 0)
+                int(item.get(key, 0) or 0)
                 for key in (
-                    "like_count",
+                    "favorite_count",
                     "reply_count",
                     "retweet_count",
                     "quote_count",
                     "bookmark_count",
                 )
             )
-            username = ((item.get("author") or {}).get("userName") or "").strip()
-            handle = username or "i"
+            author = item.get("author") or {}
+            handle = str(author.get("username") or "i").strip()
             posts.append(
                 RawPost(
                     signal_id=f"twitterapis-{tweet_id}",
