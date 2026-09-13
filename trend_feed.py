@@ -33,13 +33,17 @@ def _headline(narrative: Narrative) -> str:
 
 def format_trend(narrative: Narrative, number: int | None = None) -> str:
     signal = _newest_signal(narrative)
-    headline = html.escape(_headline(narrative))
-    topic = html.escape(_clean(signal.text, 280))
+    raw_text = " ".join(signal.text.split())
+    raw_text = re.sub(r"https?://\S+", "", raw_text).strip()
+    headline_raw = _headline(narrative)
+    remainder = raw_text[len(headline_raw):].strip() if raw_text.startswith(headline_raw) else raw_text
+
+    headline = html.escape(headline_raw)
     label = f"<b>{number}. {headline}</b>" if number is not None else f"<b>{headline}</b>"
+    body = f"\n{html.escape(_clean(remainder, 260))}" if remainder else ""
 
     return (
-        f"{label}\n"
-        f"{topic}\n\n"
+        f"{label}{body}\n\n"
         f"🔗 <a href=\"{html.escape(signal.url, quote=True)}\">Source</a>"
     )
 
