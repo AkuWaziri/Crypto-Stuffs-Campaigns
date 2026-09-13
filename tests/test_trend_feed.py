@@ -20,36 +20,36 @@ def _narrative(text: str, title: str = "solana launch") -> Narrative:
     )
 
 
-def test_format_feed_contains_trend_and_three_token_points():
+def test_format_feed_is_decision_focused():
     result = format_feed([_narrative("Solana announces a new crypto launch")], max_items=1)
 
-    assert "TRENDING NOW" in result
-    assert "Solana Launch" in result
-    assert "Token creation potential" in result
-    assert result.count("•") == 3
-    assert "NO TOKEN CREATED" in result
+    assert "CRYPTO TRENDS" in result
+    assert "1. Solana announces a new crypto launch" in result
     assert "https://example.com/story" in result
+    assert "Token creation potential" not in result
+    assert "NO TOKEN CREATED" not in result
+    assert "READ-ONLY" not in result
+    assert "•" not in result
 
 
-def test_token_angles_change_for_stablecoin_story():
+def test_format_feed_uses_latest_signal_as_headline():
     result = format_feed([
         _narrative(
-            "A new stablecoin payment rail expands USDC adoption",
+            "Stablecoin payments expand across a new network. Users can now settle transactions faster.",
             title="stablecoin payments",
         )
     ], max_items=1)
 
-    assert "payment rail or stablecoin adoption story" in result
-    assert "merchant/community incentives" in result
+    assert "1. Stablecoin payments expand across a new network." in result
+    assert "Users can now settle transactions faster." in result
 
 
-def test_token_angles_change_for_airdrop_story():
-    result = format_feed([
-        _narrative(
-            "New airdrop campaign opens claims for early users",
-            title="airdrop campaign",
-        )
-    ], max_items=1)
+def test_format_feed_limits_items_and_numbers_them():
+    narratives = [
+        _narrative("Bitcoin ETF flows accelerate", title="bitcoin etf"),
+        _narrative("Solana activity rises", title="solana activity"),
+    ]
+    result = format_feed(narratives, max_items=1)
 
-    assert "campaign moment" in result
-    assert "quests or community access" in result
+    assert "1. Bitcoin ETF flows accelerate" in result
+    assert "2. Solana activity rises" not in result
