@@ -3,6 +3,8 @@ name: TrendsBot Twitter Daily
 on:
   workflow_dispatch:
   schedule:
+    # 06:00 UTC = 07:00 WAT (UTC+1)
+    - cron: "0 6 * * *"
     # 16:00 UTC = 17:00 WAT (UTC+1)
     - cron: "0 16 * * *"
 
