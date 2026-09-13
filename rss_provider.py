@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import re
 import urllib.error
 import urllib.request
@@ -18,6 +17,17 @@ FEEDS = {
     "cryptoslate": "https://cryptoslate.com/feed/",
     "bitcoinmagazine": "https://bitcoinmagazine.com/.rss/full/",
     "thedefiant": "https://thedefiant.io/feed",
+    "reddit_cryptocurrency": "https://www.reddit.com/r/CryptoCurrency/.rss",
+    "reddit_bitcoin": "https://www.reddit.com/r/Bitcoin/.rss",
+    "reddit_ethereum": "https://www.reddit.com/r/ethereum/.rss",
+    "reddit_solana": "https://www.reddit.com/r/solana/.rss",
+    "reddit_defi": "https://www.reddit.com/r/DeFi/.rss",
+    "reddit_ethfinance": "https://www.reddit.com/r/ethfinance/.rss",
+    "reddit_ethtrader": "https://www.reddit.com/r/ethtrader/.rss",
+    "reddit_cryptomarkets": "https://www.reddit.com/r/CryptoMarkets/.rss",
+    "ethereum_blog": "https://blog.ethereum.org/feed.xml",
+    "solana_news": "https://solana.com/news/rss.xml",
+    "uniswap_blog": "https://blog.uniswap.org/rss.xml",
 }
 
 
@@ -113,7 +123,7 @@ class CryptoRSSProvider:
             url,
             headers={
                 "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml",
-                "User-Agent": "TrendsBot/0.2 (read-only crypto trend intelligence)",
+                "User-Agent": "TrendsBot/0.3 (read-only crypto trend intelligence)",
             },
             method="GET",
         )
