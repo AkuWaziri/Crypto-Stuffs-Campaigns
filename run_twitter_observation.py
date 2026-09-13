@@ -4,9 +4,10 @@ import os
 from datetime import datetime, timedelta, timezone
 
 from crypto_relevance import is_crypto_relevant
+from models import FreshSignal
 from narrative_engine import build_narratives
 from trend_feed import format_feed, send_telegram
-from twitterapis_provider import TwitterAPIsProvider
+from twitterapis_provider import TWITTER_SOURCE, TwitterAPIsProvider
 
 
 MAX_AGE_MINUTES = 24 * 60
@@ -16,22 +17,6 @@ def main() -> None:
     now = datetime.now(timezone.utc)
     provider = TwitterAPIsProvider()
     posts = provider.recent_posts(since=now - timedelta(minutes=MAX_AGE_MINUTES))
-
-    narratives = build_narratives(
-        [
-            # Convert RawPost objects into the normal FreshSignal model used by
-            # the existing narrative/feed pipeline.
-            provider_signal
-            for provider_signal in []
-        ],
-        now=now,
-        max_age_minutes=MAX_AGE_MINUTES,
-    )
-
-    # TwitterAPIs already returns RawPost objects. Keep the conversion local so
-    # the existing RSS/source pipeline remains untouched.
-    from models import FreshSignal
-    from twitterapis_provider import TWITTER_SOURCE
 
     signals = [
         FreshSignal(
