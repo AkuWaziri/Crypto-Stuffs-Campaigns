@@ -19,38 +19,47 @@ def _newest_signal(narrative: Narrative):
 
 
 def _headline(narrative: Narrative) -> str:
-    """Build a compact readable headline without adding analysis or recommendations."""
+    """Build a compact headline from the newest signal, without analysis."""
     signal = _newest_signal(narrative)
     text = " ".join(signal.text.split())
     text = re.sub(r"https?://\S+", "", text).strip()
     text = re.sub(r"\s+", " ", text)
 
-    # Prefer the first sentence when it is substantial enough to work as a headline.
     first_sentence = re.split(r"(?<=[.!?])\s+", text, maxsplit=1)[0].strip()
     headline = first_sentence if 20 <= len(first_sentence) <= 110 else text
     return _clean(headline, 110)
 
 
-def format_trend(narrative: Narrative, number: int | None = None) -> str:
+def _body(narrative: Narrative, headline: str) -> str:
     signal = _newest_signal(narrative)
     raw_text = " ".join(signal.text.split())
     raw_text = re.sub(r"https?://\S+", "", raw_text).strip()
-    headline_raw = _headline(narrative)
-    remainder = raw_text[len(headline_raw):].strip() if raw_text.startswith(headline_raw) else raw_text
+    if raw_text.startswith(headline):
+        remainder = raw_text[len(headline):].strip()
+    else:
+        remainder = ""
+    return _clean(remainder, 240)
 
-    headline = html.escape(headline_raw)
-    label = f"<b>{number}. {headline}</b>" if number is not None else f"<b>{headline}</b>"
-    body = f"\n{html.escape(_clean(remainder, 260))}" if remainder else ""
+
+def format_trend(narrative: Narrative, number: int | None = None) -> str:
+    signal = _newest_signal(narrative)
+    headline_raw = _headline(narrative)
+    body_raw = _body(narrative, headline_raw)
+
+    prefix = f"<b>{number}. {html.escape(headline_raw)}</b>" if number is not None else f"<b>{html.escape(headline_raw)}</b>"
+    body = f"\n{html.escape(body_raw)}" if body_raw else ""
+    source_name = html.escape(signal.source.name)
 
     return (
-        f"{label}{body}\n\n"
-        f"🔗 <a href=\"{html.escape(signal.url, quote=True)}\">Source</a>"
+        f"{prefix}{body}\n"
+        f"<i>Source · {source_name}</i>\n"
+        f"<a href=\"{html.escape(signal.url, quote=True)}\">Open source</a>"
     )
 
 
 def format_feed(narratives: list[Narrative], max_items: int = 5) -> str:
     if not narratives:
-        return "📰 <b>CRYPTO TRENDS</b>\n\nNo fresh crypto trends found in this cycle."
+        return "📡 <b>CRYPTO TREND PULSE</b>\n\nNo fresh crypto trends found in this cycle."
 
     ordered = sorted(
         narratives,
@@ -59,7 +68,7 @@ def format_feed(narratives: list[Narrative], max_items: int = 5) -> str:
     )[:max_items]
 
     items = [format_trend(item, index) for index, item in enumerate(ordered, start=1)]
-    return "📰 <b>CRYPTO TRENDS</b>\n\n" + "\n\n━━━━━━━━━━━━━━━━━━━━\n\n".join(items)
+    return "📡 <b>CRYPTO TREND PULSE</b>\n<i>Latest developments · read and decide</i>\n\n" + "\n\n".join(items)
 
 
 def send_telegram(text: str, bot_token: str, chat_id: str) -> None:
