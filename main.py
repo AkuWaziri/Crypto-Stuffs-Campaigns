@@ -31,19 +31,17 @@ def main() -> None:
         return
 
     if args.live:
-        events = collect_vybe_live_events()
-        events.extend(fetch_recent_large_evm_trades())
+        solana_events = collect_vybe_live_events()
+        evm_events = fetch_recent_large_evm_trades()
+        events = solana_events + evm_events
         for event in events:
-            if event.chain == "solana":
-                explanation = explain_live_event(event)
-            else:
-                explanation = explain_evm_event(event)
+            explanation = explain_live_event(event) if event.chain == "solana" else explain_evm_event(event)
             signal_score = score_signal(event, explanation)
             output = format_event(event, explanation, signal_score)
             send_message(output, dry_run=not args.telegram)
         print(f"live_signals={len(events)}")
-        print(f"solana_signals={sum(1 for event in events if event.chain == 'solana')}")
-        print(f"evm_signals={sum(1 for event in events if event.chain == 'evm')}")
+        print(f"solana_signals={len(solana_events)}")
+        print(f"evm_signals={len(evm_events)}")
         print(f"telegram={'enabled' if args.telegram else 'dry-run'}")
         return
 
