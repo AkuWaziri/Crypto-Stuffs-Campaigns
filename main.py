@@ -1,8 +1,9 @@
 import argparse
 
 from demo_data import demo_events
-from evm_live import fetch_recent_large_evm_trades, explain_evm_event
+from evm_live import event_key, explain_evm_event, fetch_recent_large_evm_trades
 from feed import format_event
+from live_state import load_seen_keys, remember_keys
 from pipeline import run_demo
 from score import score_signal
 from telegram import send_message
@@ -31,17 +32,33 @@ def main() -> None:
         return
 
     if args.live:
+        seen = load_seen_keys()
         solana_events = collect_vybe_live_events()
         evm_events = fetch_recent_large_evm_trades()
         events = solana_events + evm_events
+        new_events = []
+        new_keys = set()
+
         for event in events:
+            key = event_key(event)
+            if key in seen or key in new_keys:
+                continue
+            new_events.append(event)
+            new_keys.add(key)
+
+        for event in new_events:
             explanation = explain_live_event(event) if event.chain == "solana" else explain_evm_event(event)
             signal_score = score_signal(event, explanation)
             output = format_event(event, explanation, signal_score)
             send_message(output, dry_run=not args.telegram)
-        print(f"live_signals={len(events)}")
-        print(f"solana_signals={len(solana_events)}")
-        print(f"evm_signals={len(evm_events)}")
+
+        if new_keys:
+            remember_keys(new_keys)
+
+        print(f"live_signals={len(new_events)}")
+        print(f"solana_signals={sum(1 for event in new_events if event.chain == 'solana')}")
+        print(f"evm_signals={sum(1 for event in new_events if event.chain != 'solana')}")
+        print(f"duplicates_skipped={len(events) - len(new_events)}")
         print(f"telegram={'enabled' if args.telegram else 'dry-run'}")
         return
 
