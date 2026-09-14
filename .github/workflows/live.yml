@@ -1,0 +1,26 @@
+name: WhalesBoarder Live Feed
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      VYBE_API_KEY: ${{ secrets.VYBE_API_KEY }}
+      HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+      LIVE_MIN_USD: '100000'
+      LIVE_WINDOW_MINUTES: '6'
+      LIVE_MAX_EVENTS: '10'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Run live whale feed
+        run: python main.py --live --telegram
