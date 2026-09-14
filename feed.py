@@ -21,6 +21,12 @@ def _possible_reason(explanation: Explanation) -> str:
     return "No reliable reason identified from the available transaction data."
 
 
+def _identity(event: ActivityEvent) -> str:
+    if event.chain in {"solana", "evm"}:
+        return f"WHO: {event.entity}\nADDRESS: {event.entity}"
+    return f"WHO: {event.entity}"
+
+
 def format_event(event: ActivityEvent, explanation: Explanation, score: int) -> str:
     action_icon = {"BUY": "🟢", "SELL": "🔴", "TRANSFER": "🔵", "UNKNOWN": "⚪"}[event.action]
     value = f"~${event.value_usd:,.0f}" if event.value_usd is not None else "Unknown"
@@ -28,7 +34,7 @@ def format_event(event: ActivityEvent, explanation: Explanation, score: int) -> 
     return (
         "🐋 WHALESBOARDER\n\n"
         f"{action_icon} {event.action}\n"
-        f"WHO: {event.entity}\n"
+        f"{_identity(event)}\n"
         f"ASSET: {event.asset}\n"
         f"VALUE: {value}\n"
         f"CHAIN: {event.chain or 'Unknown'}\n"
