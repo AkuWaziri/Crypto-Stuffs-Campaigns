@@ -1,6 +1,7 @@
 import argparse
 
 from demo_data import demo_events
+from evm_live import fetch_recent_large_evm_trades, explain_evm_event
 from feed import format_event
 from pipeline import run_demo
 from score import score_signal
@@ -12,7 +13,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="WhalesBoarder read-only intelligence monitor")
     parser.add_argument("--demo", action="store_true", help="run the complete offline fixture pipeline")
     parser.add_argument("--telegram", action="store_true", help="send generated signals to Telegram")
-    parser.add_argument("--live", action="store_true", help="poll live Solana whale activity")
+    parser.add_argument("--live", action="store_true", help="poll live Solana and EVM whale activity")
     args = parser.parse_args()
 
     print("WHALESBOARDER")
@@ -31,12 +32,18 @@ def main() -> None:
 
     if args.live:
         events = collect_vybe_live_events()
+        events.extend(fetch_recent_large_evm_trades())
         for event in events:
-            explanation = explain_live_event(event)
+            if event.chain == "solana":
+                explanation = explain_live_event(event)
+            else:
+                explanation = explain_evm_event(event)
             signal_score = score_signal(event, explanation)
             output = format_event(event, explanation, signal_score)
             send_message(output, dry_run=not args.telegram)
         print(f"live_signals={len(events)}")
+        print(f"solana_signals={sum(1 for event in events if event.chain == 'solana')}")
+        print(f"evm_signals={sum(1 for event in events if event.chain == 'evm')}")
         print(f"telegram={'enabled' if args.telegram else 'dry-run'}")
         return
 
