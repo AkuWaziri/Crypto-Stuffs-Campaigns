@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any
 
 import requests
@@ -9,8 +9,15 @@ from live_config import LIVE_MAX_EVENTS, LIVE_MIN_USD, LIVE_WINDOW_MINUTES
 from models import ActivityEvent, Explanation
 from solana_monitor import monitor_wallet
 
-VYBE_BASE = "https://api.vybenetwork.com/v4"
+VYBE_BASE = "https://api.vybenetwork.xyz/v4"
 SOLANA_EXPLORER = "https://solscan.io/tx/"
+USDC_MINT = "EPjFWdd5Aufrn3QWb1b1B9i6G4JqfQk5w5h8w8xw8w8"  # replaced below by common USDC aliases
+USDC_MINTS = {
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkGZwyTDt1v",
+}
+USDT_MINTS = {
+    "Es9vMFrzaCERmJfrF4H2FYD6bQ3YkJx8Qw7XQj9rYv",
+}
 
 
 def _get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -20,12 +27,19 @@ def _get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
     response = requests.get(
         f"{VYBE_BASE}{path}",
         params=params or {},
-        headers={"X-API-Key": api_key},
-        timeout=20,
+        headers={"X-API-Key": api_key, "Accept": "application/json"},
+        timeout=30,
     )
     response.raise_for_status()
     payload = response.json()
     return payload if isinstance(payload, dict) else {}
+
+
+def _number(value: Any) -> float | None:
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
 
 
 def fetch_recent_large_trades() -> list[dict[str, Any]]:
@@ -35,7 +49,7 @@ def fetch_recent_large_trades() -> list[dict[str, Any]]:
         {
             "timeStart": now - LIVE_WINDOW_MINUTES * 60,
             "timeEnd": now,
-            "limit": 100,
+            "limit": 1000,
             "sortByDesc": "blockTime",
         },
     )
@@ -43,20 +57,22 @@ def fetch_recent_large_trades() -> list[dict[str, Any]]:
     if not isinstance(rows, list):
         return []
 
-    selected = []
-    seen = set()
+    selected: list[dict[str, Any]] = []
+    seen: set[str] = set()
     for row in rows:
         if not isinstance(row, dict):
             continue
-        signature = row.get("signature")
+        signature = str(row.get("signature") or "")
         if not signature or signature in seen:
             continue
-        try:
-            value_usd = float(row.get("valueUsd"))
-        except (TypeError, ValueError):
+
+        quote_mint = str(row.get("quoteMintAddress") or "")
+        quote_size = _number(row.get("quoteSize"))
+        if quote_mint not in USDC_MINTS | USDT_MINTS:
             continue
-        if value_usd < LIVE_MIN_USD:
+        if quote_size is None or quote_size < LIVE_MIN_USD:
             continue
+
         seen.add(signature)
         selected.append(row)
         if len(selected) >= LIVE_MAX_EVENTS:
@@ -70,6 +86,9 @@ def _token_name(mint: str) -> str:
         symbol = payload.get("symbol")
         if symbol:
             return str(symbol)
+        data = payload.get("data")
+        if isinstance(data, dict) and data.get("symbol"):
+            return str(data["symbol"])
     except requests.RequestException:
         pass
     return mint[:10] + "..."
@@ -82,8 +101,7 @@ def resolve_trade(row: dict[str, Any]) -> ActivityEvent | None:
     if not wallet or not signature or not mint:
         return None
 
-    helius_key = os.getenv("HELIUS_API_KEY", "")
-    if not helius_key:
+    if not os.getenv("HELIUS_API_KEY", ""):
         raise RuntimeError("HELIUS_API_KEY is required to classify live trades as BUY or SELL")
 
     events = monitor_wallet(wallet, asset_mint=mint, limit=20)
@@ -91,16 +109,22 @@ def resolve_trade(row: dict[str, Any]) -> ActivityEvent | None:
     if matched is None:
         return None
 
+    quote_size = _number(row.get("quoteSize"))
+    block_time = _number(row.get("blockTime"))
+    when = (
+        datetime.fromtimestamp(int(block_time), tz=timezone.utc)
+        if block_time is not None
+        else matched.timestamp
+    )
+
     return ActivityEvent(
         entity=wallet,
         entity_type="WHALE_WALLET",
         asset=_token_name(mint),
         action=matched.action,
-        value_usd=float(row.get("valueUsd")) if row.get("valueUsd") is not None else None,
+        value_usd=quote_size,
         chain="solana",
-        timestamp=datetime.fromtimestamp(
-            int(row.get("blockTime")), tz=timezone.utc
-        ) if row.get("blockTime") else matched.timestamp,
+        timestamp=when,
         source="vybe",
         tx_or_reference=signature,
         evidence=(f"{SOLANA_EXPLORER}{signature}",),
@@ -119,7 +143,7 @@ def collect_vybe_live_events() -> list[ActivityEvent]:
 def explain_live_event(event: ActivityEvent) -> Explanation:
     return Explanation(
         "CONFIRMED",
-        f"Vybe trade data and the matched on-chain transaction confirm a {event.action.lower()} of {event.asset}.",
+        f"Vybe trade data and the matched Helius transaction confirm a {event.action.lower()} of {event.asset}.",
         event.evidence,
         "HIGH",
     )
