@@ -1,89 +1,38 @@
-from __future__ import annotations
-
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
+from typing import Literal
 
-
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-@dataclass(frozen=True)
-class SourceAccount:
-    handle: str
-    display_name: str
-    category: str
-    authority_score: int
-    reliability_score: int
-    enabled: bool = True
-
+Action = Literal["BUY", "SELL", "TRANSFER", "UNKNOWN"]
+Confidence = Literal["HIGH", "MEDIUM", "LOW"]
+ReasonStatus = Literal["CONFIRMED", "INFERRED", "UNKNOWN"]
 
 @dataclass(frozen=True)
-class FreshSignal:
-    source: SourceAccount
-    signal_id: str
-    text: str
-    url: str
-    published_at: datetime
-    engagement: int = 0
-
-    @property
-    def age_seconds(self) -> float:
-        return max(0.0, (utc_now() - self.published_at).total_seconds())
-
-    @property
-    def is_fresh(self) -> bool:
-        from config import MAX_SIGNAL_AGE_MINUTES
-
-        return self.age_seconds <= MAX_SIGNAL_AGE_MINUTES * 60
-
-
-@dataclass
-class Narrative:
-    narrative_id: str
-    title: str
-    signals: list[FreshSignal] = field(default_factory=list)
-    novelty_score: float = 0.0
-    meme_potential_score: float = 0.0
-    crypto_relevance_score: float = 0.0
-    velocity_score: float = 0.0
-    existing_token_penalty: float = 0.0
-    freshness_score_override: float | None = None
-
-    @property
-    def freshness_score(self) -> float:
-        if self.freshness_score_override is not None:
-            return max(0.0, min(100.0, self.freshness_score_override))
-        if not self.signals:
-            return 0.0
-        newest = min(signal.age_seconds for signal in self.signals)
-        return max(0.0, min(100.0, 100.0 - (newest / 300.0) * 100.0))
-
-    @property
-    def authority_score(self) -> float:
-        if not self.signals:
-            return 0.0
-        return max(signal.source.authority_score for signal in self.signals)
-
-    @property
-    def trend_score(self) -> float:
-        # Weights deliberately sum to 1.0 so a perfect narrative can reach 100.
-        score = (
-            self.freshness_score * 0.25
-            + self.authority_score * 0.20
-            + self.velocity_score * 0.20
-            + self.crypto_relevance_score * 0.15
-            + self.meme_potential_score * 0.10
-            + self.novelty_score * 0.10
-        )
-        score -= self.existing_token_penalty
-        return max(0.0, min(100.0, score))
-
+class ActivityEvent:
+    entity: str
+    entity_type: str
+    asset: str
+    action: Action
+    value_usd: float | None
+    chain: str | None
+    timestamp: datetime
+    source: str
+    tx_or_reference: str | None = None
+    evidence: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class QualificationDecision:
-    narrative_id: str
-    qualified: bool
-    trend_score: float
+class Explanation:
+    status: ReasonStatus
     reason: str
-    decided_at: datetime = field(default_factory=utc_now)
+    evidence: tuple[str, ...] = field(default_factory=tuple)
+    confidence: Confidence = "LOW"
+
+
+def classify_crypto_flow(*, received_target: bool, spent_target: bool, is_swap: bool) -> Action:
+    """Classify the tracked asset, not the transaction as a whole."""
+    if not is_swap:
+        return "TRANSFER"
+    if received_target and not spent_target:
+        return "BUY"
+    if spent_target and not received_target:
+        return "SELL"
+    return "UNKNOWN"

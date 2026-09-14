@@ -1,35 +1,8 @@
-from __future__ import annotations
-
 import os
 
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+HELIUS_API_KEY = os.getenv("HELIUS_API_KEY", "")
+EVM_RPC_URL = os.getenv("EVM_RPC_URL", "")
 
-APP_NAME = "TrendsBot"
-SCAN_INTERVAL_MINUTES = int(os.getenv("SCAN_INTERVAL_MINUTES", "30"))
-MAX_SIGNAL_AGE_MINUTES = int(os.getenv("MAX_SIGNAL_AGE_MINUTES", "60"))
-MAX_LAUNCHES_PER_CYCLE = int(os.getenv("MAX_LAUNCHES_PER_CYCLE", "2"))
-MODE = os.getenv("TRENDSBOT_MODE", "test").lower()
-INTELLIGENCE_PROVIDER = os.getenv("INTELLIGENCE_PROVIDER", "deterministic").lower()
-
-# Hard safety boundaries for the current intelligence-only phase.
-TOKEN_LAUNCH_ENABLED = os.getenv("TOKEN_LAUNCH_ENABLED", "false").lower() == "true"
-TRADING_ENABLED = False
-SELF_BUY_ENABLED = False
-
-if MODE not in {"test", "observation", "production"}:
-    raise ValueError("TRENDSBOT_MODE must be test, observation, or production")
-
-if INTELLIGENCE_PROVIDER not in {"deterministic", "llm"}:
-    raise ValueError("INTELLIGENCE_PROVIDER must be deterministic or llm")
-
-if SCAN_INTERVAL_MINUTES < 1:
-    raise ValueError("SCAN_INTERVAL_MINUTES must be positive")
-
-if MAX_SIGNAL_AGE_MINUTES < 1:
-    raise ValueError("MAX_SIGNAL_AGE_MINUTES must be positive")
-
-if MAX_LAUNCHES_PER_CYCLE < 0:
-    raise ValueError("MAX_LAUNCHES_PER_CYCLE cannot be negative")
-
-# Production launch remains impossible until the launch subsystem is explicitly built.
-if MODE != "production":
-    TOKEN_LAUNCH_ENABLED = False
+READ_ONLY = True

@@ -1,31 +1,33 @@
-# TrendsBot
+# WhalesBoarder
 
-Crypto trend intelligence and Solana token-launch research engine.
+Read-only intelligence system for tracking large wallet and institutional activity across crypto and stocks.
 
-## Current mode
+## Scope
 
-**TEST / READ-ONLY**
+- Solana
+- EVM chains
+- Publicly disclosed stock activity
+- Large wallets, known funds, organizations, protocol treasuries, market makers, and other labeled entities
+- Telegram as the primary feed
+- Explain **why** a buy or sell may be happening when evidence exists
 
-The first phase only discovers and scores very recent crypto narratives. It does not create tokens, trade, buy, sell, or move funds.
+## Rules
 
-## Architecture
+1. A transfer is not automatically a buy or sell.
+2. Crypto buys/sells require transaction-direction evidence such as a swap or equivalent market interaction.
+3. Stock activity is based on public disclosures and market/flow data; it is not assumed to be real-time.
+4. Reasons are evidence-ranked:
+   - `CONFIRMED` — directly supported by evidence
+   - `INFERRED` — plausible and supported by surrounding evidence
+   - `UNKNOWN` — no reliable reason identified
+5. No trade execution, no order placement, and no token launching.
 
-1. Source registry
-2. Fresh-signal collection
-3. Timestamp/freshness validation
-4. Topic extraction
-5. Narrative clustering
-6. Trend scoring
-7. Solana/on-chain verification
-8. Token concept qualification
-9. Launch engine (future, disabled until explicitly enabled)
-10. Post-launch monitoring (future)
+## Initial architecture
 
-## Hard constraints
+`source -> normalize -> classify -> explain -> Telegram`
 
-- Maximum 2 launches per decision cycle in production
-- No self-buying
-- No automated trading
-- No wash trading or artificial volume
-- Launch functionality remains disabled during intelligence development
-- Secrets are supplied through GitHub Actions secrets, never committed to the repository
+Provider integrations will be added without changing the normalized event model.
+
+## Status
+
+Foundation reset complete. Crypto monitoring is the first implementation target, starting with Solana and EVM.
