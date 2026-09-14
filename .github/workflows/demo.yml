@@ -23,3 +23,9 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Run complete offline pipeline
         run: python main.py --demo
+      - name: Send Telegram test feed
+        if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '' }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py --demo --telegram
