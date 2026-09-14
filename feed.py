@@ -22,7 +22,7 @@ def _possible_reason(explanation: Explanation) -> str:
 
 
 def _identity(event: ActivityEvent) -> str:
-    if event.chain in {"solana", "evm"}:
+    if event.chain != "public-disclosure":
         return f"WHO: {event.entity}\nADDRESS: {event.entity}"
     return f"WHO: {event.entity}"
 
