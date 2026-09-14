@@ -21,6 +21,15 @@ jobs:
       EVM_NETWORKS: 'eth,base,bsc,arbitrum,polygon'
     steps:
       - uses: actions/checkout@v4
+
+      - name: Restore live deduplication state
+        uses: actions/cache@v4
+        with:
+          path: .whalesboarder_state.json
+          key: whalesboarder-state-${{ github.run_id }}
+          restore-keys: |
+            whalesboarder-state-
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
