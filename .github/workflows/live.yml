@@ -3,7 +3,7 @@ name: WhalesBoarder Live Feed
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/5 * * * *'
 
 jobs:
   live:
@@ -14,6 +14,15 @@ jobs:
       VYBE_API_KEY: ${{ secrets.VYBE_API_KEY }}
       HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
       BITQUERY_API_KEY: ${{ secrets.BITQUERY_API_KEY }}
+      SOLANA_MIN_BUY_USD: '2000'
+      SOLANA_MAJOR_BUY_USD: '100000'
+      SOLANA_REPEAT_MIN_USD: '1000'
+      SOLANA_REPEAT_MAX_USD: '5000'
+      SOLANA_EMERGING_MAX_USD: '10000'
+      SOLANA_NEW_TOKEN_MINUTES: '5'
+      SOLANA_DISCOVERY_MINUTES: '30'
+      SOLANA_DISCOVERY_LIMIT: '20'
+      SOLANA_EVENTS_PER_TOKEN: '50'
       LIVE_MIN_USD: '100000'
       LIVE_WINDOW_MINUTES: '10'
       LIVE_MAX_EVENTS: '10'
