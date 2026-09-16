@@ -14,7 +14,6 @@ jobs:
       VYBE_API_KEY: ${{ secrets.VYBE_API_KEY }}
       HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
       BITQUERY_API_KEY: ${{ secrets.BITQUERY_API_KEY }}
-      MORALIS_API_KEY: ${{ secrets.MORALIS_API_KEY }}
       LIVE_MIN_USD: '100000'
       LIVE_WINDOW_MINUTES: '10'
       LIVE_MAX_EVENTS: '10'
