@@ -6,7 +6,7 @@ from feed import format_event
 from live_state import load_seen_keys, remember_keys
 from pipeline import run_demo
 from score import score_signal
-from solana_discovery import discover_solana_events, explain_discovered_event
+from solana_discovery import SOLANA_DIAGNOSTICS, discover_solana_events, explain_discovered_event
 from telegram import send_message
 
 
@@ -58,6 +58,8 @@ def main() -> None:
         if new_keys:
             remember_keys(new_keys)
 
+        for diagnostic in SOLANA_DIAGNOSTICS:
+            print(f"solana_diagnostic={diagnostic}")
         for diagnostic in EVM_DIAGNOSTICS:
             print(f"evm_diagnostic={diagnostic}")
 
