@@ -18,6 +18,7 @@ class ActivityEvent:
     source: str
     tx_or_reference: str | None = None
     evidence: tuple[str, ...] = field(default_factory=tuple)
+    asset_address: str | None = None
 
 @dataclass(frozen=True)
 class Explanation:
