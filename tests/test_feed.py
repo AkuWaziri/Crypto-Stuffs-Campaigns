@@ -24,4 +24,7 @@ def test_feed_separates_wallet_and_token_address():
     assert "WHO: 0xwallet" in text
     assert "ADDRESS: TokenMintAddress" in text
     assert "ADDRESS: 0xwallet" not in text
-    assert "SIGNAL SCORE: 90/100" in text
+    assert "WHY IT MAY MATTER" not in text
+    assert "POSSIBLE REASON" not in text
+    assert "SIGNAL SCORE:" not in text
+    assert "CONFIDENCE:" not in text
