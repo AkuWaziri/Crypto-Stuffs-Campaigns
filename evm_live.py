@@ -28,6 +28,9 @@ EXPLORERS = {
     "polygon": "https://polygonscan.com/tx/",
 }
 
+# Runtime diagnostics are intentionally separate from signal logic.
+EVM_DIAGNOSTICS: list[str] = []
+
 
 def _bitquery_headers() -> dict[str, str]:
     key = os.getenv("BITQUERY_API_KEY", "")
@@ -76,7 +79,9 @@ def _query_network(network: str, limit: int = 100) -> list[dict[str, Any]]:
     if payload.get("errors"):
         raise RuntimeError(str(payload["errors"]))
     rows = payload.get("data", {}).get("Trading", {}).get("Trades", [])
-    return rows if isinstance(rows, list) else []
+    if not isinstance(rows, list):
+        raise RuntimeError("Bitquery returned an unexpected Trades payload")
+    return rows
 
 
 def _number(value: Any) -> float | None:
@@ -146,7 +151,9 @@ def event_key(event: ActivityEvent) -> str:
 
 
 def fetch_recent_large_evm_trades() -> list[ActivityEvent]:
+    EVM_DIAGNOSTICS.clear()
     if not os.getenv("BITQUERY_API_KEY", ""):
+        EVM_DIAGNOSTICS.append("BITQUERY_API_KEY missing")
         return []
 
     events: list[ActivityEvent] = []
@@ -154,8 +161,20 @@ def fetch_recent_large_evm_trades() -> list[ActivityEvent]:
     for network in EVM_NETWORKS:
         try:
             rows = _query_network(network)
-        except (requests.RequestException, RuntimeError):
+            EVM_DIAGNOSTICS.append(f"{network}: ok rows={len(rows)}")
+        except requests.HTTPError as exc:
+            status = exc.response.status_code if exc.response is not None else "unknown"
+            detail = exc.response.text[:300].replace("\n", " ") if exc.response is not None else str(exc)
+            EVM_DIAGNOSTICS.append(f"{network}: HTTP {status} {detail}")
             continue
+        except requests.RequestException as exc:
+            EVM_DIAGNOSTICS.append(f"{network}: request error {exc}")
+            continue
+        except RuntimeError as exc:
+            EVM_DIAGNOSTICS.append(f"{network}: Bitquery error {str(exc)[:500]}")
+            continue
+
+        parsed_before = len(events)
         for row in rows:
             event = _parse_trade(row, network)
             if event is None:
@@ -166,7 +185,9 @@ def fetch_recent_large_evm_trades() -> list[ActivityEvent]:
             seen.add(key)
             events.append(event)
             if len(events) >= LIVE_MAX_EVENTS:
+                EVM_DIAGNOSTICS.append(f"{network}: qualified_events={len(events) - parsed_before}")
                 return sorted(events, key=lambda item: item.timestamp, reverse=True)
+        EVM_DIAGNOSTICS.append(f"{network}: qualified_events={len(events) - parsed_before}")
 
     return sorted(events, key=lambda item: item.timestamp, reverse=True)
 
