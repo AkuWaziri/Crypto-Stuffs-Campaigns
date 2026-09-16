@@ -6,8 +6,8 @@ from feed import format_event
 from live_state import load_seen_keys, remember_keys
 from pipeline import run_demo
 from score import score_signal
+from solana_discovery import discover_solana_events, explain_discovered_event
 from telegram import send_message
-from vybe_live import collect_vybe_live_events, explain_live_event
 
 
 def main() -> None:
@@ -33,7 +33,7 @@ def main() -> None:
 
     if args.live:
         seen = load_seen_keys()
-        solana_events = collect_vybe_live_events()
+        solana_events = discover_solana_events()
         evm_events = fetch_recent_large_evm_trades()
         events = solana_events + evm_events
         new_events = []
@@ -47,7 +47,10 @@ def main() -> None:
             new_keys.add(key)
 
         for event in new_events:
-            explanation = explain_live_event(event) if event.chain == "solana" else explain_evm_event(event)
+            if event.chain == "solana":
+                explanation = explain_discovered_event(event, solana_events)
+            else:
+                explanation = explain_evm_event(event)
             signal_score = score_signal(event, explanation)
             output = format_event(event, explanation, signal_score)
             send_message(output, dry_run=not args.telegram)
