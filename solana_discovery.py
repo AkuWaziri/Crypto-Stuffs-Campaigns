@@ -12,7 +12,8 @@ SOLANA_EXPLORER = "https://solscan.io/tx/"
 
 SOLANA_MIN_BUY_USD = max(100.0, float(os.getenv("SOLANA_MIN_BUY_USD", "200")))
 SOLANA_EMERGING_MAX_USD = max(SOLANA_MIN_BUY_USD, float(os.getenv("SOLANA_EMERGING_MAX_USD", "2000")))
-SOLANA_MAJOR_BUY_USD = max(SOLANA_EMERGING_MAX_USD, float(os.getenv("SOLANA_MAJOR_BUY_USD", "100000")))
+SOLANA_MAJOR_BUY_MIN_USD = max(SOLANA_EMERGING_MAX_USD, float(os.getenv("SOLANA_MAJOR_BUY_MIN_USD", "5000")))
+SOLANA_MAJOR_BUY_MAX_USD = max(SOLANA_MAJOR_BUY_MIN_USD, float(os.getenv("SOLANA_MAJOR_BUY_MAX_USD", "10000")))
 SOLANA_REPEAT_MIN_USD = max(100.0, float(os.getenv("SOLANA_REPEAT_MIN_USD", "1000")))
 SOLANA_REPEAT_MAX_USD = max(SOLANA_REPEAT_MIN_USD, float(os.getenv("SOLANA_REPEAT_MAX_USD", "5000")))
 SOLANA_WINDOW_MINUTES = max(5, int(os.getenv("SOLANA_WINDOW_MINUTES", "30")))
@@ -110,19 +111,27 @@ def _fetch_trades() -> list[dict[str, Any]]:
         return []
 
 
-def _buy_wallet(row: dict[str, Any]) -> str:
+def _side_data(row: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     trade = row.get("Trade") or {}
     buy = trade.get("Buy") or {}
-    account = buy.get("Account") or {}
+    sell = trade.get("Sell") or {}
+    buy_value = _number(buy.get("AmountInUSD"))
+    sell_value = _number(sell.get("AmountInUSD"))
+
+    if buy_value is not None and buy_value > 0:
+        return "BUY", buy
+    if sell_value is not None and sell_value > 0:
+        return "SELL", sell
+    return "", {}
+
+
+def _wallet(row: dict[str, Any], side_data: dict[str, Any]) -> str:
+    account = side_data.get("Account") or {}
     return str(account.get("Address") or row.get("Transaction", {}).get("FeePayer") or "")
 
 
-def _buy_currency(row: dict[str, Any]) -> dict[str, Any]:
-    return ((row.get("Trade") or {}).get("Buy") or {}).get("Currency") or {}
-
-
-def _buy_value(row: dict[str, Any]) -> float | None:
-    return _number(((row.get("Trade") or {}).get("Buy") or {}).get("AmountInUSD"))
+def _value(side_data: dict[str, Any]) -> float | None:
+    return _number(side_data.get("AmountInUSD"))
 
 
 def _row_timestamp(row: dict[str, Any]) -> datetime:
@@ -135,27 +144,34 @@ def _row_timestamp(row: dict[str, Any]) -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _in_configured_band(value_usd: float) -> bool:
+    return (
+        SOLANA_MIN_BUY_USD <= value_usd <= SOLANA_EMERGING_MAX_USD
+        or SOLANA_MAJOR_BUY_MIN_USD <= value_usd <= SOLANA_MAJOR_BUY_MAX_USD
+    )
+
+
 def discover_solana_events() -> list[ActivityEvent]:
-    """Discover Solana DEX buys in the $200-$2K band plus major $100K+ buys."""
+    """Discover Solana DEX buys and sells in the configured monitoring bands."""
     events: list[ActivityEvent] = []
     seen: set[str] = set()
 
     for row in _fetch_trades():
-        value_usd = _buy_value(row)
-        if value_usd is None:
+        action, side_data = _side_data(row)
+        if not action:
             continue
 
-        # Requested detection bands: small buys $200-$2K, plus major buys $100K+.
-        if not (SOLANA_MIN_BUY_USD <= value_usd <= SOLANA_EMERGING_MAX_USD or value_usd >= SOLANA_MAJOR_BUY_USD):
+        value_usd = _value(side_data)
+        if value_usd is None or not _in_configured_band(value_usd):
             continue
 
-        currency = _buy_currency(row)
+        currency = side_data.get("Currency") or {}
         mint = str(currency.get("MintAddress") or "")
         if not mint or mint in STABLE_MINTS or mint in SOL_MINTS:
             continue
 
         signature = str((row.get("Transaction") or {}).get("Signature") or "")
-        wallet = _buy_wallet(row)
+        wallet = _wallet(row, side_data)
         if not signature or not wallet or signature in seen:
             continue
         seen.add(signature)
@@ -168,9 +184,9 @@ def discover_solana_events() -> list[ActivityEvent]:
         events.append(
             ActivityEvent(
                 entity=wallet,
-                entity_type="SOLANA_WHALE_BUY",
+                entity_type="SOLANA_WHALE_ACTIVITY",
                 asset=symbol,
-                action="BUY",
+                action=action,
                 value_usd=value_usd,
                 chain="solana",
                 timestamp=timestamp,
@@ -189,6 +205,13 @@ def discover_solana_events() -> list[ActivityEvent]:
 
 
 def explain_discovered_event(event: ActivityEvent, all_events: list[ActivityEvent]) -> Explanation:
+    if event.action == "SELL":
+        if event.value_usd is not None and SOLANA_MAJOR_BUY_MIN_USD <= event.value_usd <= SOLANA_MAJOR_BUY_MAX_USD:
+            reason = f"Major Solana sale in the configured ${SOLANA_MAJOR_BUY_MIN_USD:,.0f}-${SOLANA_MAJOR_BUY_MAX_USD:,.0f} range."
+        else:
+            reason = f"Solana token sale in the configured ${SOLANA_MIN_BUY_USD:,.0f}-${SOLANA_EMERGING_MAX_USD:,.0f} monitoring band."
+        return Explanation("CONFIRMED", reason, event.evidence, "HIGH")
+
     token_events = [
         e for e in all_events
         if e.chain == "solana" and e.action == "BUY" and e.asset == event.asset
@@ -219,15 +242,13 @@ def explain_discovered_event(event: ActivityEvent, all_events: list[ActivityEven
             f"Multi-wallet accumulation: {len(wallets)} distinct wallets were detected buying "
             f"{event.asset} in the same live window."
         )
-    elif event.value_usd is not None and event.value_usd >= SOLANA_MAJOR_BUY_USD:
-        reason = f"Major Solana purchase of approximately ${event.value_usd:,.0f} by the observed wallet."
-    elif event.value_usd is not None and event.value_usd <= SOLANA_EMERGING_MAX_USD:
+    elif event.value_usd is not None and SOLANA_MAJOR_BUY_MIN_USD <= event.value_usd <= SOLANA_MAJOR_BUY_MAX_USD:
+        reason = f"Major Solana purchase in the configured ${SOLANA_MAJOR_BUY_MIN_USD:,.0f}-${SOLANA_MAJOR_BUY_MAX_USD:,.0f} range."
+    else:
         reason = (
             f"Emerging-token purchase in the configured ${SOLANA_MIN_BUY_USD:,.0f}-"
             f"${SOLANA_EMERGING_MAX_USD:,.0f} monitoring band."
         )
-    else:
-        reason = "Recent Solana DEX purchase detected from Bitquery trade data."
 
     evidence = event.evidence + (
         f"distinct_buyers_in_window: {len(wallets)}",
