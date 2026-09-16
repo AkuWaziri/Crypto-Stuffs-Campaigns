@@ -4,7 +4,7 @@ from typing import Any
 
 import requests
 
-from live_config import LIVE_MAX_EVENTS, LIVE_MIN_USD, LIVE_WINDOW_MINUTES
+from live_config import LIVE_MAX_EVENTS, LIVE_WINDOW_MINUTES
 from models import ActivityEvent, Explanation
 
 BITQUERY_URL = "https://streaming.bitquery.io/graphql"
@@ -28,7 +28,10 @@ EXPLORERS = {
     "polygon": "https://polygonscan.com/tx/",
 }
 
-# Runtime diagnostics are intentionally separate from signal logic.
+EVM_MIN_BUY_USD = max(100.0, float(os.getenv("EVM_MIN_BUY_USD", "200")))
+EVM_MAX_BUY_USD = max(EVM_MIN_BUY_USD, float(os.getenv("EVM_MAX_BUY_USD", "2000")))
+EVM_MAJOR_BUY_USD = max(EVM_MAX_BUY_USD, float(os.getenv("EVM_MAJOR_BUY_USD", "100000")))
+
 EVM_DIAGNOSTICS: list[str] = []
 
 
@@ -50,7 +53,8 @@ def _query_network(network: str, limit: int = 100) -> list[dict[str, Any]]:
           where: {{
             Block: {{Time: {{since_relative: {{minutes_ago: {LIVE_WINDOW_MINUTES}}}}}}}
             Pair: {{Market: {{Network: {{is: "{network_name}"}}}}}}
-            AmountsInUsd: {{Quote: {{gt: {LIVE_MIN_USD}}}}}
+            Side: {{is: "Buy"}}
+            AmountsInUsd: {{Quote: {{gt: {EVM_MIN_BUY_USD}}}}}
           }}
         ) {{
           Block {{ Time }}
@@ -101,16 +105,16 @@ def _parse_trade(row: dict[str, Any], network: str) -> ActivityEvent | None:
         return None
 
     side = str(row.get("Side") or "").upper()
-    if side == "BUY":
-        action = "BUY"
-    elif side == "SELL":
-        action = "SELL"
-    else:
+    if side != "BUY":
         return None
 
     amounts_usd = row.get("AmountsInUsd") or {}
     value_usd = _number(amounts_usd.get("Quote"))
-    if value_usd is None or value_usd < LIVE_MIN_USD:
+    if value_usd is None:
+        return None
+
+    # Monitor the requested small-buy band plus major buys, while ignoring the large middle band.
+    if not (EVM_MIN_BUY_USD <= value_usd <= EVM_MAX_BUY_USD or value_usd >= EVM_MAJOR_BUY_USD):
         return None
 
     asset = str(token.get("Symbol") or token.get("Id") or "UNKNOWN")
@@ -128,7 +132,7 @@ def _parse_trade(row: dict[str, Any], network: str) -> ActivityEvent | None:
         entity=wallet,
         entity_type="WHALE_WALLET",
         asset=asset,
-        action=action,
+        action="BUY",
         value_usd=value_usd,
         chain=network,
         timestamp=when,
@@ -193,9 +197,8 @@ def fetch_recent_large_evm_trades() -> list[ActivityEvent]:
 
 
 def explain_evm_event(event: ActivityEvent) -> Explanation:
-    return Explanation(
-        "CONFIRMED",
-        f"Bitquery Trading.Trades reports this wallet as the {event.action.lower()} side of the trade.",
-        event.evidence,
-        "HIGH",
-    )
+    if event.value_usd is not None and event.value_usd >= EVM_MAJOR_BUY_USD:
+        reason = f"Major EVM purchase of approximately ${event.value_usd:,.0f} by the observed wallet."
+    else:
+        reason = f"EVM token purchase in the configured ${EVM_MIN_BUY_USD:,.0f}-${EVM_MAX_BUY_USD:,.0f} monitoring band."
+    return Explanation("CONFIRMED", reason, event.evidence, "HIGH")
