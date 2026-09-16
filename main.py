@@ -1,7 +1,7 @@
 import argparse
 
 from demo_data import demo_events
-from evm_live import event_key, explain_evm_event, fetch_recent_large_evm_trades
+from evm_live import EVM_DIAGNOSTICS, event_key, explain_evm_event, fetch_recent_large_evm_trades
 from feed import format_event
 from live_state import load_seen_keys, remember_keys
 from pipeline import run_demo
@@ -54,6 +54,9 @@ def main() -> None:
 
         if new_keys:
             remember_keys(new_keys)
+
+        for diagnostic in EVM_DIAGNOSTICS:
+            print(f"evm_diagnostic={diagnostic}")
 
         print(f"live_signals={len(new_events)}")
         print(f"solana_signals={sum(1 for event in new_events if event.chain == 'solana')}")
