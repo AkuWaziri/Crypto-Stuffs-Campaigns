@@ -1,6 +1,5 @@
 import json
 import os
-from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any
 
@@ -11,17 +10,17 @@ from models import ActivityEvent, Explanation
 BITQUERY_URL = "https://streaming.bitquery.io/eap"
 SOLANA_EXPLORER = "https://solscan.io/tx/"
 
-SOLANA_MIN_BUY_USD = max(100.0, float(os.getenv("SOLANA_MIN_BUY_USD", "2000")))
-SOLANA_MAJOR_BUY_USD = max(SOLANA_MIN_BUY_USD, float(os.getenv("SOLANA_MAJOR_BUY_USD", "100000")))
+SOLANA_MIN_BUY_USD = max(100.0, float(os.getenv("SOLANA_MIN_BUY_USD", "200")))
+SOLANA_EMERGING_MAX_USD = max(SOLANA_MIN_BUY_USD, float(os.getenv("SOLANA_EMERGING_MAX_USD", "2000")))
+SOLANA_MAJOR_BUY_USD = max(SOLANA_EMERGING_MAX_USD, float(os.getenv("SOLANA_MAJOR_BUY_USD", "100000")))
 SOLANA_REPEAT_MIN_USD = max(100.0, float(os.getenv("SOLANA_REPEAT_MIN_USD", "1000")))
 SOLANA_REPEAT_MAX_USD = max(SOLANA_REPEAT_MIN_USD, float(os.getenv("SOLANA_REPEAT_MAX_USD", "5000")))
-SOLANA_EMERGING_MAX_USD = max(SOLANA_MIN_BUY_USD, float(os.getenv("SOLANA_EMERGING_MAX_USD", "10000")))
 SOLANA_WINDOW_MINUTES = max(5, int(os.getenv("SOLANA_WINDOW_MINUTES", "30")))
 SOLANA_MAX_TRADES = max(20, min(int(os.getenv("SOLANA_MAX_TRADES", "200")), 500))
 
 STABLE_MINTS = {
-    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkGZwyTDt1v",  # USDC
-    "Es9vMFrzaCERmJfrF4H2FYD6bQ3YkJx8Qw7XQj9rYv",  # legacy/variant USDT reference
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkGZwyTDt1v",
+    "Es9vMFrzaCERmJfrF4H2FYD6bQ3YkJx8Qw7XQj9rYv",
 }
 SOL_MINTS = {
     "So11111111111111111111111111111111111111112",
@@ -137,18 +136,17 @@ def _row_timestamp(row: dict[str, Any]) -> datetime:
 
 
 def discover_solana_events() -> list[ActivityEvent]:
-    """Discover broad Solana DEX buys from the live Bitquery trade stream.
-
-    This deliberately does not restrict discovery to a fixed wallet list or stablecoin pairs.
-    Bitquery identifies the actual buyer, token mint, USD trade value, DEX and signature.
-    Helius remains available elsewhere in the project for wallet-level enrichment.
-    """
+    """Discover Solana DEX buys in the $200-$2K band plus major $100K+ buys."""
     events: list[ActivityEvent] = []
     seen: set[str] = set()
 
     for row in _fetch_trades():
         value_usd = _buy_value(row)
-        if value_usd is None or value_usd < SOLANA_MIN_BUY_USD:
+        if value_usd is None:
+            continue
+
+        # Requested detection bands: small buys $200-$2K, plus major buys $100K+.
+        if not (SOLANA_MIN_BUY_USD <= value_usd <= SOLANA_EMERGING_MAX_USD or value_usd >= SOLANA_MAJOR_BUY_USD):
             continue
 
         currency = _buy_currency(row)
@@ -229,7 +227,7 @@ def explain_discovered_event(event: ActivityEvent, all_events: list[ActivityEven
             f"${SOLANA_EMERGING_MAX_USD:,.0f} monitoring band."
         )
     else:
-        reason = f"Recent Solana DEX purchase detected from Bitquery trade data."
+        reason = "Recent Solana DEX purchase detected from Bitquery trade data."
 
     evidence = event.evidence + (
         f"distinct_buyers_in_window: {len(wallets)}",
