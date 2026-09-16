@@ -54,7 +54,6 @@ def _query_network(network: str, limit: int = 100) -> list[dict[str, Any]]:
           where: {{
             Block: {{Time: {{since_relative: {{minutes_ago: {LIVE_WINDOW_MINUTES}}}}}}}
             Pair: {{Market: {{Network: {{is: "{network_name}"}}}}}}
-            Side: {{is: "Buy"}}
             AmountsInUsd: {{Quote: {{gt: {EVM_MIN_BUY_USD}}}}}
           }}
         ) {{
@@ -106,7 +105,7 @@ def _parse_trade(row: dict[str, Any], network: str) -> ActivityEvent | None:
         return None
 
     side = str(row.get("Side") or "").upper()
-    if side != "BUY":
+    if side not in {"BUY", "SELL"}:
         return None
 
     amounts_usd = row.get("AmountsInUsd") or {}
@@ -114,7 +113,7 @@ def _parse_trade(row: dict[str, Any], network: str) -> ActivityEvent | None:
     if value_usd is None:
         return None
 
-    # Monitor the requested small-buy band plus the requested major-buy band.
+    # Monitor both directions: $200-$2K and $5K-$10K.
     if not (
         EVM_MIN_BUY_USD <= value_usd <= EVM_MAX_BUY_USD
         or EVM_MAJOR_BUY_MIN_USD <= value_usd <= EVM_MAJOR_BUY_MAX_USD
@@ -136,7 +135,7 @@ def _parse_trade(row: dict[str, Any], network: str) -> ActivityEvent | None:
         entity=wallet,
         entity_type="WHALE_WALLET",
         asset=asset,
-        action="BUY",
+        action=side,
         value_usd=value_usd,
         chain=network,
         timestamp=when,
@@ -201,7 +200,12 @@ def fetch_recent_large_evm_trades() -> list[ActivityEvent]:
 
 
 def explain_evm_event(event: ActivityEvent) -> Explanation:
-    if event.value_usd is not None and EVM_MAJOR_BUY_MIN_USD <= event.value_usd <= EVM_MAJOR_BUY_MAX_USD:
+    if event.action == "SELL":
+        if event.value_usd is not None and EVM_MAJOR_BUY_MIN_USD <= event.value_usd <= EVM_MAJOR_BUY_MAX_USD:
+            reason = f"Major EVM sale in the configured ${EVM_MAJOR_BUY_MIN_USD:,.0f}-${EVM_MAJOR_BUY_MAX_USD:,.0f} range."
+        else:
+            reason = f"EVM token sale in the configured ${EVM_MIN_BUY_USD:,.0f}-${EVM_MAX_BUY_USD:,.0f} monitoring band."
+    elif event.value_usd is not None and EVM_MAJOR_BUY_MIN_USD <= event.value_usd <= EVM_MAJOR_BUY_MAX_USD:
         reason = f"Major EVM purchase in the configured ${EVM_MAJOR_BUY_MIN_USD:,.0f}-${EVM_MAJOR_BUY_MAX_USD:,.0f} range."
     else:
         reason = f"EVM token purchase in the configured ${EVM_MIN_BUY_USD:,.0f}-${EVM_MAX_BUY_USD:,.0f} monitoring band."
