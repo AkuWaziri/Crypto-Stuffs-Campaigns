@@ -8,7 +8,6 @@ from live_config import LIVE_MAX_EVENTS, LIVE_MIN_USD, LIVE_WINDOW_MINUTES
 from models import ActivityEvent, Explanation
 
 BITQUERY_URL = "https://streaming.bitquery.io/graphql"
-MORALIS_URL = "https://deep-index.moralis.io/api/v2.2"
 EVM_NETWORKS = tuple(
     item.strip()
     for item in os.getenv("EVM_NETWORKS", "eth,base,bsc,arbitrum,polygon").split(",")
@@ -87,54 +86,6 @@ def _number(value: Any) -> float | None:
         return None
 
 
-def _moralis_enrichment(wallet: str, network: str) -> tuple[str | None, str, float | None]:
-    key = os.getenv("MORALIS_API_KEY", "")
-    if not key:
-        return None, "WHALE_WALLET", None
-
-    label = None
-    entity_type = "WHALE_WALLET"
-    roi = None
-    headers = {"X-API-Key": key}
-
-    try:
-        response = requests.get(
-            f"{MORALIS_URL}/entities/search",
-            params={"query": wallet, "limit": 5},
-            headers=headers,
-            timeout=15,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        addresses = payload.get("result", {}).get("addresses", [])
-        for item in addresses:
-            if str(item.get("address", "")).lower() == wallet.lower():
-                label = item.get("primary_label")
-                if label:
-                    entity_type = "KNOWN_ENTITY"
-                break
-    except (requests.RequestException, ValueError, AttributeError):
-        pass
-
-    if network in {"eth", "base", "polygon"}:
-        try:
-            response = requests.get(
-                f"{MORALIS_URL}/wallets/{wallet}/profitability/summary",
-                params={"chain": network, "days": "30"},
-                headers=headers,
-                timeout=15,
-            )
-            response.raise_for_status()
-            summary = response.json()
-            roi = _number(summary.get("total_realized_profit_percentage"))
-            if roi is not None and roi >= 50:
-                entity_type = "SMART_MONEY"
-        except (requests.RequestException, ValueError, AttributeError):
-            pass
-
-    return str(label) if label else None, entity_type, roi
-
-
 def _parse_trade(row: dict[str, Any], network: str) -> ActivityEvent | None:
     trader = row.get("Trader") or {}
     pair = row.get("Pair") or {}
@@ -158,7 +109,6 @@ def _parse_trade(row: dict[str, Any], network: str) -> ActivityEvent | None:
         return None
 
     asset = str(token.get("Symbol") or token.get("Id") or "UNKNOWN")
-    label, entity_type, roi = _moralis_enrichment(wallet, network)
 
     when_raw = (row.get("Block") or {}).get("Time")
     try:
@@ -168,14 +118,10 @@ def _parse_trade(row: dict[str, Any], network: str) -> ActivityEvent | None:
 
     explorer = EXPLORERS.get(network)
     evidence = (f"{explorer}{tx_hash}",) if explorer else (tx_hash,)
-    if label:
-        evidence += (f"Moralis label: {label}",)
-    if roi is not None:
-        evidence += (f"Moralis realized 30d ROI: {roi:.1f}%",)
 
     return ActivityEvent(
         entity=wallet,
-        entity_type=entity_type,
+        entity_type="WHALE_WALLET",
         asset=asset,
         action=action,
         value_usd=value_usd,
@@ -226,20 +172,6 @@ def fetch_recent_large_evm_trades() -> list[ActivityEvent]:
 
 
 def explain_evm_event(event: ActivityEvent) -> Explanation:
-    if event.entity_type == "SMART_MONEY":
-        return Explanation(
-            "INFERRED",
-            "Moralis reports strong recent realized profitability for this address, supporting a smart-money classification.",
-            event.evidence,
-            "MEDIUM",
-        )
-    if event.entity_type == "KNOWN_ENTITY":
-        return Explanation(
-            "INFERRED",
-            "Moralis identifies this address as a known entity.",
-            event.evidence,
-            "MEDIUM",
-        )
     return Explanation(
         "CONFIRMED",
         f"Bitquery Trading.Trades reports this wallet as the {event.action.lower()} side of the trade.",
