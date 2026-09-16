@@ -121,6 +121,7 @@ def _parse_trade(row: dict[str, Any], network: str) -> ActivityEvent | None:
         return None
 
     asset = str(token.get("Symbol") or token.get("Id") or "UNKNOWN")
+    asset_address = str(token.get("Id") or "") or None
 
     when_raw = (row.get("Block") or {}).get("Time")
     try:
@@ -142,6 +143,7 @@ def _parse_trade(row: dict[str, Any], network: str) -> ActivityEvent | None:
         source="bitquery_trading",
         tx_or_reference=tx_hash,
         evidence=evidence,
+        asset_address=asset_address,
     )
 
 
