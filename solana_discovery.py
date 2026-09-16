@@ -197,6 +197,7 @@ def discover_solana_events() -> list[ActivityEvent]:
                     f"mint: {mint}",
                     f"dex: {protocol}",
                 ),
+                asset_address=mint,
             )
         )
 
