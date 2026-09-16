@@ -3,7 +3,7 @@ name: WhalesBoarder Live Feed
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '0 * * * *'
 
 jobs:
   live:
