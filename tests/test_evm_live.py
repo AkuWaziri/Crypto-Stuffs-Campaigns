@@ -1,7 +1,7 @@
 from evm_live import _parse_trade
 
 
-def test_bitquery_trading_trade_uses_actual_trader_and_side():
+def test_bitquery_trading_trade_uses_actual_trader_and_token_address():
     row = {
         "Block": {"Time": "2026-09-14T18:00:00Z"},
         "Side": "Buy",
@@ -22,6 +22,7 @@ def test_bitquery_trading_trade_uses_actual_trader_and_side():
     assert event.entity == "0xABC123"
     assert event.action == "BUY"
     assert event.asset == "TOKEN"
+    assert event.asset_address == "0xtoken"
     assert event.value_usd == 425500
     assert event.chain == "eth"
     assert event.tx_or_reference == "0xHASH"
