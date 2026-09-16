@@ -65,6 +65,7 @@ def parse_swap(tx: dict[str, Any], wallet: str, asset_mint: str | None = None) -
         source="helius",
         tx_or_reference=signature,
         evidence=(f"https://orb.helius.dev/tx/{signature}/history",) if signature else (),
+        asset_address=asset_mint,
     )
 
 
