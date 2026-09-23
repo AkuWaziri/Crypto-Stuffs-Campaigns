@@ -7,42 +7,20 @@ from tweetkit_x.cookie import ct0_of
 from tweetkit_x.client import _walk_timeline
 from config import X_AUTH_TOKEN, X_CT0, X_SEARCH_LIMIT, X_SEARCH_QUERY_ID
 
-# Keep queries deliberately simple. X's web search endpoint accepts normal
-# search terms, while complex boolean expressions can break client-side
-# transaction handling.
 X_QUERIES = [
-    "crypto airdrop",
-    "crypto points",
-    "crypto campaign",
-    "crypto rewards",
-    "crypto quest",
-    "crypto contest",
-    "crypto competition",
-    "crypto bounty",
-    "crypto ambassador",
-    "crypto creator",
-    "crypto meme contest",
-    "crypto art contest",
-    "crypto video contest",
-    "crypto content campaign",
-    "crypto IDO",
-    "crypto token sale",
-    "crypto NFT mint",
-    "crypto testnet",
-    "crypto mainnet",
-    "crypto devnet",
-    "crypto builders",
-    "crypto hackathon",
-    "crypto grant",
-    "crypto apply",
+    "crypto airdrop", "crypto points", "crypto campaign", "crypto rewards",
+    "crypto quest", "crypto contest", "crypto competition", "crypto bounty",
+    "crypto ambassador", "crypto creator", "crypto meme contest",
+    "crypto art contest", "crypto video contest", "crypto content campaign",
+    "crypto IDO", "crypto token sale", "crypto NFT mint", "crypto testnet",
+    "crypto mainnet", "crypto devnet", "crypto builders", "crypto hackathon",
+    "crypto grant", "crypto apply",
 ]
-
 
 def _cookie_header():
     if not X_AUTH_TOKEN or not X_CT0:
         raise RuntimeError("X_AUTH_TOKEN and X_CT0 are required")
     return f"auth_token={X_AUTH_TOKEN}; ct0={X_CT0}"
-
 
 def _iso_created_at(value):
     if not value:
@@ -55,19 +33,10 @@ def _iso_created_at(value):
             return value
     return value
 
-
 def _search_without_transaction(tk, query, limit):
-    """
-    SearchTimeline fallback for X's current web frontend.
-
-    tweetkit-x currently generates x-client-transaction-id by parsing X's
-    ondemand JavaScript. X changed that frontend path, which can produce:
-    "'NoneType' object has no attribute 'group'" before SearchTimeline is
-    actually requested. We keep the rest of tweetkit-x's authenticated
-    session, GraphQL query ID and timeline parser, but omit that failing
-    optional header.
-    """
-    # X migrated SearchTimeline from GET to POST. The old tweetkit-x query ID\n    # is also stale, so use a configurable current ID with a known fallback.\n    qid = X_SEARCH_QUERY_ID or "GcXk9vN_d1jUfHNqLacXQA"\n    url = f"{C.GQL_BASE}/{qid}/SearchTimeline"
+    # SearchTimeline currently uses POST. Keep the query ID configurable.
+    qid = X_SEARCH_QUERY_ID or "GcXk9vN_d1jUfHNqLacXQA"
+    url = f"{C.GQL_BASE}/{qid}/SearchTimeline"
 
     headers = {
         "authorization": C.BEARER,
@@ -84,6 +53,7 @@ def _search_without_transaction(tk, query, limit):
         "sec-fetch-dest": "empty",
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-origin",
+        "content-type": "application/json",
     }
 
     tweets, users, cursor, pages = {}, {}, None, 0
@@ -98,14 +68,15 @@ def _search_without_transaction(tk, query, limit):
         if cursor:
             variables["cursor"] = cursor
 
-        params = {
-            "variables": json.dumps(variables),
-            "features": json.dumps(C.USER_TWEETS_FEATURES),
+        payload = {
+            "variables": variables,
+            "features": C.USER_TWEETS_FEATURES,
+            "fieldToggles": {"withArticleRichContentState": False},
         }
 
-        response = tk._session.get(
+        response = tk._session.post(
             url,
-            params=params,
+            json=payload,
             headers=headers,
             timeout=tk.timeout,
         )
@@ -133,11 +104,9 @@ def _search_without_transaction(tk, query, limit):
     output.sort(key=lambda item: item.get("created_at_ts", 0), reverse=True)
     return output[:limit]
 
-
 def search_x():
     tk = TweetKit(cookie=_cookie_header(), timeout=30)
-    results = []
-    seen = set()
+    results, seen = [], set()
 
     for query in X_QUERIES:
         try:
