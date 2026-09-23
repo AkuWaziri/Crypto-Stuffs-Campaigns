@@ -19,6 +19,13 @@ jobs:
       ENABLE_WEB_SOURCES: "true"
     steps:
       - uses: actions/checkout@v4
+      - name: Restore campaign deduplication state
+        uses: actions/cache@v4
+        with:
+          path: .campaign_state.json
+          key: crypto-stuffs-campaign-state-${{ github.run_id }}
+          restore-keys: |
+            crypto-stuffs-campaign-state-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
