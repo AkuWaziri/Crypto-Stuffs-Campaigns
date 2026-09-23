@@ -1,10 +1,15 @@
 from datetime import datetime, timezone
+import json
+
 from tweetkit_x import TweetKit
+from tweetkit_x import constants as C
+from tweetkit_x.cookie import ct0_of
+from tweetkit_x.client import _walk_timeline
 from config import X_AUTH_TOKEN, X_CT0, X_SEARCH_LIMIT
 
-# Keep queries deliberately simple. tweetkit-x passes these through X's
-# web SearchTimeline request, and complex boolean/grouped expressions can
-# break its current query handling before the request is sent.
+# Keep queries deliberately simple. X's web search endpoint accepts normal
+# search terms, while complex boolean expressions can break client-side
+# transaction handling.
 X_QUERIES = [
     "crypto airdrop",
     "crypto points",
@@ -42,11 +47,92 @@ def _cookie_header():
 def _iso_created_at(value):
     if not value:
         return None
-    try:
-        dt = datetime.strptime(value, "%a %b %d %H:%M:%S +0000 %Y")
-        return dt.replace(tzinfo=timezone.utc).isoformat()
-    except ValueError:
-        return value
+    if isinstance(value, str):
+        try:
+            dt = datetime.strptime(value, "%a %b %d %H:%M:%S +0000 %Y")
+            return dt.replace(tzinfo=timezone.utc).isoformat()
+        except ValueError:
+            return value
+    return value
+
+
+def _search_without_transaction(tk, query, limit):
+    """
+    SearchTimeline fallback for X's current web frontend.
+
+    tweetkit-x currently generates x-client-transaction-id by parsing X's
+    ondemand JavaScript. X changed that frontend path, which can produce:
+    "'NoneType' object has no attribute 'group'" before SearchTimeline is
+    actually requested. We keep the rest of tweetkit-x's authenticated
+    session, GraphQL query ID and timeline parser, but omit that failing
+    optional header.
+    """
+    qid = C.QUERY_IDS["SearchTimeline"]
+    url = f"{C.GQL_BASE}/{qid}/SearchTimeline"
+
+    headers = {
+        "authorization": C.BEARER,
+        "cookie": tk.cookie,
+        "x-csrf-token": ct0_of(tk.cookie),
+        "x-twitter-active-user": "yes",
+        "x-twitter-auth-type": "OAuth2Session",
+        "x-twitter-client-language": "en",
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "origin": "https://x.com",
+        "referer": "https://x.com/home",
+        "user-agent": C.UA,
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+    }
+
+    tweets, users, cursor, pages = {}, {}, None, 0
+    while len(tweets) < limit and pages < 3:
+        pages += 1
+        variables = {
+            "rawQuery": query,
+            "count": min(20, limit),
+            "querySource": "typed_query",
+            "product": "Latest",
+        }
+        if cursor:
+            variables["cursor"] = cursor
+
+        params = {
+            "variables": json.dumps(variables),
+            "features": json.dumps(C.USER_TWEETS_FEATURES),
+        }
+
+        response = tk._session.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=tk.timeout,
+        )
+
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"SearchTimeline HTTP {response.status_code}: {response.text[:200]}"
+            )
+
+        before = len(tweets)
+        next_cursor = _walk_timeline(response.json(), tweets, users)
+        if len(tweets) == before or not next_cursor:
+            break
+        cursor = next_cursor
+
+    output = []
+    for tweet in tweets.values():
+        handle = users.get(tweet["author_id"], "unknown")
+        output.append({
+            **tweet,
+            "author": handle,
+            "url": f"https://x.com/{handle}/status/{tweet['id']}",
+        })
+
+    output.sort(key=lambda item: item.get("created_at_ts", 0), reverse=True)
+    return output[:limit]
 
 
 def search_x():
@@ -56,7 +142,7 @@ def search_x():
 
     for query in X_QUERIES:
         try:
-            tweets = tk.search_x(query, product="Latest", limit=X_SEARCH_LIMIT)
+            tweets = _search_without_transaction(tk, query, X_SEARCH_LIMIT)
             for tweet in tweets:
                 tweet_id = str(tweet.get("id", ""))
                 if not tweet_id or tweet_id in seen:
