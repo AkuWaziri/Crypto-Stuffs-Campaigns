@@ -1,25 +1,13 @@
-from models import ActivityEvent, Explanation
-
-
-def _identity(event: ActivityEvent) -> str:
-    if event.chain != "public-disclosure":
-        address = event.asset_address or "Unknown token address"
-        return f"WHO: {event.entity}\nADDRESS: {address}"
-    return f"WHO: {event.entity}"
-
-
-def format_event(event: ActivityEvent, explanation: Explanation, score: int) -> str:
-    action_icon = {"BUY": "🟢", "SELL": "🔴", "TRANSFER": "🔵", "UNKNOWN": "⚪"}[event.action]
-    value = f"~${event.value_usd:,.0f}" if event.value_usd is not None else "Unknown"
-    evidence = "\n".join(f"• {item}" for item in explanation.evidence) or "• No external evidence"
+def format_item(item):
+    source = item.get("source", "unknown").upper()
+    types = ", ".join(item.get("types", []))
+    author = item.get("author", "unknown")
+    text = " ".join(item.get("text", "").split())
+    if len(text) > 700:
+        text = text[:697] + "..."
     return (
-        "🐋 WHALESBOARDER\n\n"
-        f"{action_icon} {event.action}\n"
-        f"{_identity(event)}\n"
-        f"ASSET: {event.asset}\n"
-        f"VALUE: {value}\n"
-        f"CHAIN: {event.chain or 'Unknown'}\n"
-        f"TIME: {event.timestamp.strftime('%Y-%m-%d %H:%M UTC')}\n\n"
-        "EVIDENCE\n"
-        f"{evidence}"
+        "🛰️ CRYPTO-STUFFS CAMPAIGNS\n\n"
+        f"SOURCE: {source}\nTYPE: {types}\nFROM: @{author}\n"
+        f"SIGNAL: {item.get('campaign_score', 0)}/100\n\n{text}\n\n"
+        f"🔗 {item.get('url', '')}"
     )
