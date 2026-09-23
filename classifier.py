@@ -1,20 +1,13 @@
 import re
 
 CAMPAIGN_TYPES = {
-    "airdrop": ["airdrop", "air drop"],
-    "points": ["points", "point campaign", "points program"],
-    "creator": ["creator", "content creator", "content campaign"],
-    "video": ["video contest", "video competition", "make a video"],
-    "meme": ["meme contest", "meme competition", "meme campaign"],
-    "art": ["art contest", "art competition", "artist"],
-    "quest": ["quest", "tasks", "missions", "campaign"],
-    "ambassador": ["ambassador", "ambassadors"],
-    "hackathon": ["hackathon", "builders", "buildathon"],
-    "testnet": ["testnet", "devnet", "mainnet"],
-    "ido": ["ido", "token sale", "public sale"],
-    "nft": ["nft", "mint", "allowlist", "whitelist"],
-    "grant": ["grant", "grants", "funding", "bounty"],
-    "trend": ["trending", "narrative", "viral", "meta"],
+    "airdrop": ["airdrop", "air drop"], "points": ["points", "point campaign", "points program"],
+    "creator": ["creator", "content creator", "content campaign"], "video": ["video contest", "video competition", "make a video"],
+    "meme": ["meme contest", "meme competition", "meme campaign"], "art": ["art contest", "art competition", "artist"],
+    "quest": ["quest", "tasks", "missions", "campaign"], "ambassador": ["ambassador", "ambassadors"],
+    "hackathon": ["hackathon", "builders", "buildathon"], "testnet": ["testnet", "devnet", "mainnet"],
+    "ido": ["ido", "token sale", "public sale"], "nft": ["nft", "mint", "allowlist", "whitelist"],
+    "grant": ["grant", "grants", "funding", "bounty"], "trend": ["trending", "narrative", "viral", "meta"],
 }
 ACTION_WORDS = ["join", "apply", "register", "submit", "earn", "reward", "win", "deadline", "ends", "open", "ongoing", "season", "round", "wave"]
 
