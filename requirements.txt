@@ -1,2 +1,4 @@
 pytest>=8,<9
 requests>=2.32,<3
+beautifulsoup4>=4.12,<5
+twscrape>=0.20,<0.21
