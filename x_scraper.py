@@ -1,4 +1,5 @@
 import asyncio
+import json
 from datetime import timezone
 from twscrape import API
 from config import X_AUTH_TOKEN, X_CT0, X_SEARCH_LIMIT
@@ -16,7 +17,8 @@ async def _search():
     if not X_AUTH_TOKEN or not X_CT0:
         raise RuntimeError("X_AUTH_TOKEN and X_CT0 are required")
     api = API("x_scraper.db")
-    await api.pool.add_account("scraper_session", "", "", "", cookies={"auth_token": X_AUTH_TOKEN, "ct0": X_CT0})
+    cookies = json.dumps({"auth_token": X_AUTH_TOKEN, "ct0": X_CT0})
+    await api.pool.add_account("scraper_session", "", "", "", cookies=cookies)
     results, seen = [], set()
     for query in X_QUERIES:
         try:
@@ -24,7 +26,14 @@ async def _search():
                 if str(tweet.id) in seen:
                     continue
                 seen.add(str(tweet.id))
-                results.append({"id": str(tweet.id), "author": getattr(tweet.user, "username", "unknown"), "text": tweet.rawContent, "url": tweet.url, "created_at": tweet.date.astimezone(timezone.utc).isoformat(), "source": "x"})
+                results.append({
+                    "id": str(tweet.id),
+                    "author": getattr(tweet.user, "username", "unknown"),
+                    "text": tweet.rawContent,
+                    "url": tweet.url,
+                    "created_at": tweet.date.astimezone(timezone.utc).isoformat(),
+                    "source": "x",
+                })
         except Exception as exc:
             print(f"x_search_error={query}: {exc}")
     return results
