@@ -2,13 +2,34 @@ from datetime import datetime, timezone
 from tweetkit_x import TweetKit
 from config import X_AUTH_TOKEN, X_CT0, X_SEARCH_LIMIT
 
+# Keep queries deliberately simple. tweetkit-x passes these through X's
+# web SearchTimeline request, and complex boolean/grouped expressions can
+# break its current query handling before the request is sent.
 X_QUERIES = [
-    "crypto (airdrop OR points OR campaign OR rewards OR quest)",
-    "crypto (contest OR competition OR bounty OR ambassador OR creator)",
-    "crypto (meme OR art OR video OR content) (contest OR campaign OR rewards)",
-    "crypto (IDO OR token sale OR launch OR mint OR NFT)",
-    "crypto (testnet OR mainnet OR devnet OR builders OR hackathon)",
-    "crypto (grant OR application OR applications OR apply)",
+    "crypto airdrop",
+    "crypto points",
+    "crypto campaign",
+    "crypto rewards",
+    "crypto quest",
+    "crypto contest",
+    "crypto competition",
+    "crypto bounty",
+    "crypto ambassador",
+    "crypto creator",
+    "crypto meme contest",
+    "crypto art contest",
+    "crypto video contest",
+    "crypto content campaign",
+    "crypto IDO",
+    "crypto token sale",
+    "crypto NFT mint",
+    "crypto testnet",
+    "crypto mainnet",
+    "crypto devnet",
+    "crypto builders",
+    "crypto hackathon",
+    "crypto grant",
+    "crypto apply",
 ]
 
 
