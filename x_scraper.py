@@ -5,7 +5,7 @@ from tweetkit_x import TweetKit
 from tweetkit_x import constants as C
 from tweetkit_x.cookie import ct0_of
 from tweetkit_x.client import _walk_timeline
-from config import X_AUTH_TOKEN, X_CT0, X_SEARCH_LIMIT
+from config import X_AUTH_TOKEN, X_CT0, X_SEARCH_LIMIT, X_SEARCH_QUERY_ID
 
 # Keep queries deliberately simple. X's web search endpoint accepts normal
 # search terms, while complex boolean expressions can break client-side
@@ -67,8 +67,7 @@ def _search_without_transaction(tk, query, limit):
     session, GraphQL query ID and timeline parser, but omit that failing
     optional header.
     """
-    qid = C.QUERY_IDS["SearchTimeline"]
-    url = f"{C.GQL_BASE}/{qid}/SearchTimeline"
+    # X migrated SearchTimeline from GET to POST. The old tweetkit-x query ID\n    # is also stale, so use a configurable current ID with a known fallback.\n    qid = X_SEARCH_QUERY_ID or "GcXk9vN_d1jUfHNqLacXQA"\n    url = f"{C.GQL_BASE}/{qid}/SearchTimeline"
 
     headers = {
         "authorization": C.BEARER,
