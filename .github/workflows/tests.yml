@@ -1,4 +1,4 @@
-name: WhalesBoarder Tests
+name: Crypto-Stuffs-Campaigns Tests
 
 on:
   workflow_dispatch:
@@ -12,6 +12,26 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: pytest -q
+      - name: Compile new project modules
+        run: python -m py_compile classifier.py config.py feed.py main.py state.py telegram.py web_sources.py x_scraper.py
+      - name: Run smoke tests
+        run: |
+          python - <<'PY'
+          from classifier import classify, is_relevant
+          from feed import format_item
+
+          item = {
+              "source": "x",
+              "author": "test",
+              "text": "New airdrop campaign is open. Join now and earn points.",
+              "url": "https://x.com/test/status/1",
+          }
+          result = classify(item)
+          assert is_relevant(result)
+          assert "airdrop" in result["types"]
+          assert "points" in result["types"]
+          assert "SIGNAL:" in format_item(result)
+          print("smoke_tests=passed")
+          PY
