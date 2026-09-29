@@ -7,8 +7,24 @@ from tweetkit_x.cookie import ct0_of
 from tweetkit_x.client import _walk_timeline
 from config import X_AUTH_TOKEN, X_CT0, X_SEARCH_LIMIT, X_SEARCH_QUERY_ID
 
-# Search for the kinds of crypto posts the feed is meant to surface.
+# Search for crypto opportunities/campaigns plus the broader crypto posts
+# already covered by this feed.
 X_QUERIES = [
+    # Campaigns / opportunities
+    "crypto campaign", "web3 campaign", "crypto rewards", "web3 rewards",
+    "crypto contest", "web3 contest", "crypto competition",
+    "crypto hackathon", "web3 hackathon", "buildathon crypto",
+    "crypto bounty", "web3 bounty", "crypto grant", "web3 grants",
+    "crypto creator campaign", "web3 creator campaign",
+    "crypto video contest", "web3 video contest", "crypto video challenge",
+    "crypto art contest", "web3 design contest", "crypto meme contest",
+    "crypto writing contest", "crypto content contest", "crypto research bounty",
+    "crypto ambassador program", "web3 ambassador", "crypto community challenge",
+    "crypto testnet rewards", "crypto devnet rewards",
+    "crypto trading competition", "crypto trading contest",
+    "crypto NFT campaign", "crypto token rewards", "crypto points campaign",
+    "crypto airdrop", "crypto quests", "crypto missions",
+    "crypto idea competition", "web3 innovation challenge", "crypto pitch competition",
     # Humor / culture
     "crypto satire", "crypto satirical", "crypto parody", "crypto irony",
     "crypto ironic", "crypto funny", "crypto hilarious", "crypto joke",
@@ -21,7 +37,7 @@ X_QUERIES = [
     # Building / shipping
     "crypto building", "crypto builder", "crypto builders", "building onchain",
     "building in web3", "shipping crypto", "crypto prototype", "crypto MVP",
-    "crypto hackathon", "web3 builders", "web3 building", "defi building",
+    "web3 builders", "web3 building", "defi building",
     # Ideas / products
     "crypto idea", "crypto ideas", "web3 idea", "web3 ideas",
     "crypto product idea", "crypto app idea", "protocol idea",
