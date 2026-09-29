@@ -7,51 +7,23 @@ from tweetkit_x.cookie import ct0_of
 from tweetkit_x.client import _walk_timeline
 from config import X_AUTH_TOKEN, X_CT0, X_SEARCH_LIMIT, X_SEARCH_QUERY_ID
 
-# Search for crypto opportunities/campaigns plus the broader crypto posts
-# already covered by this feed.
+# Search only for the requested crypto research, discovery, analysis,
+# humor/culture, and hacks/security categories.
 X_QUERIES = [
-    # Campaigns / opportunities
-    "crypto campaign", "web3 campaign", "crypto rewards", "web3 rewards",
-    "crypto contest", "web3 contest", "crypto competition",
-    "crypto hackathon", "web3 hackathon", "buildathon crypto",
-    "crypto bounty", "web3 bounty", "crypto grant", "web3 grants",
-    "crypto creator campaign", "web3 creator campaign",
-    "crypto video contest", "web3 video contest", "crypto video challenge",
-    "crypto art contest", "web3 design contest", "crypto meme contest",
-    "crypto writing contest", "crypto content contest", "crypto research bounty",
-    "crypto ambassador program", "web3 ambassador", "crypto community challenge",
-    "crypto testnet rewards", "crypto devnet rewards",
-    "crypto trading competition", "crypto trading contest",
-    "crypto NFT campaign", "crypto token rewards", "crypto points campaign",
-    "crypto airdrop", "crypto quests", "crypto missions",
-    "crypto idea competition", "web3 innovation challenge", "crypto pitch competition",
-    # Humor / culture
+    "crypto research", "crypto research paper", "crypto findings",
+    "onchain findings", "on-chain findings", "crypto analysis",
+    "defi analysis", "stablecoin analysis", "crypto discovery",
+    "crypto investigation", "crypto deep dive", "crypto case study",
+    "crypto postmortem", "crypto forensics", "crypto data",
+    "crypto experiment", "crypto unexpected", "crypto interesting",
     "crypto satire", "crypto satirical", "crypto parody", "crypto irony",
     "crypto ironic", "crypto funny", "crypto hilarious", "crypto joke",
-    "crypto meme", "crypto comic", "crypto cartoon", "crypto metaphor",
-    "crypto analogy", "crypto be like", "web3 be like",
-    # Research / discoveries
-    "crypto research", "crypto study", "crypto data", "crypto findings",
-    "crypto discovery", "crypto investigation", "crypto experiment",
-    "crypto analysis", "onchain findings", "onchain research",
-    # Building / shipping
-    "crypto building", "crypto builder", "crypto builders", "building onchain",
-    "building in web3", "shipping crypto", "crypto prototype", "crypto MVP",
-    "web3 builders", "web3 building", "defi building",
-    # Ideas / products
-    "crypto idea", "crypto ideas", "web3 idea", "web3 ideas",
-    "crypto product idea", "crypto app idea", "protocol idea",
-    "someone should build crypto", "what if crypto", "new crypto primitive",
-    "crypto use case", "crypto problem", "web3 problem",
-    # Technical / open source
-    "crypto architecture", "web3 architecture", "crypto infrastructure",
-    "crypto technical", "smart contract design", "crypto open source",
-    "web3 open source", "crypto SDK", "crypto developer tool",
-    "crypto integration", "web3 integration",
-    # Applications / emerging combinations
-    "crypto payments", "crypto remittance", "crypto identity",
-    "crypto gaming", "crypto social", "crypto creator",
-    "crypto AI", "web3 AI", "crypto DePIN", "crypto commerce",
+    "crypto meme", "crypto memes", "crypto comic", "crypto cartoon",
+    "crypto metaphor", "crypto analogy", "crypto be like", "web3 be like",
+    "crypto hack", "crypto hacked", "crypto exploit", "crypto vulnerability",
+    "crypto security", "crypto breach", "defi hack", "defi exploit",
+    "smart contract exploit", "protocol exploit", "crypto attack",
+    "crypto scam analysis",
 ]
 
 def _cookie_header():
