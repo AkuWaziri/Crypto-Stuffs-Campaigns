@@ -1,17 +1,32 @@
 # Crypto-Stuffs-Campaigns
 
-Crypto campaign and trend intelligence feed for Telegram.
+Crypto-content discovery feed for Telegram.
 
 ## What it watches
 
-- X/Twitter crypto campaigns and announcements
-- Airdrops and points programs
-- Creator, video, meme and art competitions
-- Builder, hackathon, testnet and mainnet opportunities
-- IDO/token sales and NFT campaigns
-- Grants, bounties and ambassador programs
-- Public campaign/quest platforms such as Zealy, Galxe and Layer3
-- Emerging crypto topics and narratives
+Only crypto-related content that is:
+- Satirical or parody
+- Ironic
+- Funny or laughable
+- Metaphorical or analogy-driven
+- Research/data/experiment based
+- Comic/cartoon/meme based
+- An unusual or interesting finding/discovery
+
+## Sources
+
+- X/Twitter
+- Reddit
+- Medium
+- Public Telegram channels
+- Bluesky
+- Additional public sources can be added through the source modules
+
+## Filtering
+
+Every item must be crypto-related and match at least one requested content form.
+
+There is no quality score, signal score, ranking, campaign score, or campaign/reward classification.
 
 ## Current mode
 
@@ -19,13 +34,12 @@ Read-only. No wallet connections, trading, token creation or transaction executi
 
 ## X scraper
 
-The first implementation uses twscrape with an authenticated X session supplied through GitHub Secrets. X session availability can change because X actively changes its web interface and anti-bot controls.
+X uses an authenticated web session supplied through GitHub Secrets.
 
 Required secrets:
-
 - TELEGRAM_BOT_TOKEN
 - TELEGRAM_CHAT_ID
 - X_AUTH_TOKEN
 - X_CT0
 
-The scheduled feed runs hourly. Use GitHub Actions manual dispatch for testing.
+The GitHub Actions feed runs every 3 hours.
