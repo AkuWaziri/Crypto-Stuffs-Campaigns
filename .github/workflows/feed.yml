@@ -3,6 +3,7 @@ name: Crypto-Stuffs-Campaigns Feed
 on:
   workflow_dispatch:
   schedule:
+    # Run the campaign feed every 3 hours.
     - cron: "0 */3 * * *"
 
 jobs:
