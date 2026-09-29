@@ -16,9 +16,22 @@ from config import (
 )
 
 CONTENT_QUERIES = (
+    # Humor / culture
     "crypto satire", "crypto ironic", "crypto funny", "crypto meme",
-    "crypto comic", "crypto metaphor", "crypto research", "crypto findings",
-    "crypto discovery", "crypto investigation",
+    "crypto comic", "crypto metaphor",
+    # Research / findings
+    "crypto research", "crypto findings", "crypto discovery",
+    "crypto investigation", "crypto experiment", "crypto analysis",
+    # Building / ideas
+    "crypto building", "crypto builders", "crypto prototype", "crypto hackathon",
+    "crypto idea", "crypto ideas", "crypto product", "crypto app",
+    "protocol idea", "crypto use case", "crypto problem",
+    # Technical / open source
+    "crypto architecture", "crypto infrastructure", "crypto technical",
+    "crypto open source", "crypto SDK", "crypto developer", "crypto integration",
+    # Applications
+    "crypto payments", "crypto identity", "crypto gaming", "crypto social",
+    "crypto creator", "crypto AI", "crypto DePIN", "crypto commerce",
 )
 
 HEADERS = {
