@@ -1,23 +1,42 @@
 import re
 
-CAMPAIGN_TYPES = {
-    "airdrop": ["airdrop", "air drop"], "points": ["points", "point campaign", "points program"],
-    "creator": ["creator", "content creator", "content campaign"], "video": ["video contest", "video competition", "make a video"],
-    "meme": ["meme contest", "meme competition", "meme campaign"], "art": ["art contest", "art competition", "artist"],
-    "quest": ["quest", "tasks", "missions", "campaign"], "ambassador": ["ambassador", "ambassadors"],
-    "hackathon": ["hackathon", "builders", "buildathon"], "testnet": ["testnet", "devnet", "mainnet"],
-    "ido": ["ido", "token sale", "public sale"], "nft": ["nft", "mint", "allowlist", "whitelist"],
-    "grant": ["grant", "grants", "funding", "bounty"], "trend": ["trending", "narrative", "viral", "meta"],
+CRYPTO_TERMS = (
+    "crypto", "cryptocurrency", "bitcoin", "btc", "ethereum", "eth", "solana",
+    "sol", "defi", "web3", "blockchain", "onchain", "on-chain", "dao", "nft",
+    "stablecoin", "token", "tokens", "altcoin", "memecoin", "memecoin", "airdrop",
+    "wallet", "layer 2", "l2", "rollup", "protocol", "dapp", "staking",
+    "yield", "liquidity", "dex", "cex", "evm", "zk", "restaking",
+)
+
+CONTENT_TYPES = {
+    "satire": ("satire", "satirical", "parody", "parodying", "mocking", "mock"),
+    "ironic": ("ironic", "irony", "ironically", "ironic that", "plot twist"),
+    "funny": ("funny", "hilarious", "lol", "lmao", "haha", "joke", "jokes", "laugh"),
+    "metaphor": ("metaphor", "metaphorical", "analogy", "like a", "is basically"),
+    "research": ("research", "study", "paper", "data", "analysis", "report", "findings", "experiment", "investigation"),
+    "comic": ("comic", "comics", "cartoon", "illustration", "illustrated", "meme"),
+    "finding": ("finding", "findings", "discovered", "discovery", "reveals", "revealed", "interesting", "unexpected", "observation"),
 }
-ACTION_WORDS = ["join", "apply", "register", "submit", "earn", "reward", "win", "deadline", "ends", "open", "ongoing", "season", "round", "wave"]
+
+def _has_term(text, terms):
+    return any(re.search(r"(?<!\\w)" + re.escape(term) + r"(?!\\w)", text) for term in terms)
 
 def classify(item):
-    low = item.get("text", "").lower()
-    types = [label for label, words in CAMPAIGN_TYPES.items() if any(w in low for w in words)]
-    action_hits = sum(bool(re.search(r"\b" + re.escape(w) + r"\b", low)) for w in ACTION_WORDS)
-    item["types"] = types or ["trend"]
-    item["campaign_score"] = min(100, len(types) * 12 + action_hits * 8 + (10 if item.get("source") == "x" else 0))
+    text = " ".join(str(item.get("text", "")).split())
+    low = text.lower()
+
+    crypto = _has_term(low, CRYPTO_TERMS)
+    types = [label for label, words in CONTENT_TYPES.items() if _has_term(low, words)]
+
+    # The source query itself can establish crypto context, but the final item
+    # must still match one of the requested content forms.
+    if item.get("source") in {"x", "reddit", "medium", "telegram", "bluesky", "mastodon"}:
+        crypto = crypto or bool(item.get("crypto_query"))
+
+    item["types"] = types
+    item["crypto_relevant"] = crypto
+    item["content_relevant"] = bool(types)
     return item
 
 def is_relevant(item):
-    return item.get("campaign_score", 0) >= 20
+    return bool(item.get("crypto_relevant") and item.get("content_relevant"))
