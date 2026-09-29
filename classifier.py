@@ -10,132 +10,57 @@ CRYPTO_TERMS = (
     "base", "cosmos", "polkadot", "avalanche", "near", "sui", "aptos",
 )
 
+# Deliberately narrow taxonomy: only research/discovery/analysis,
+# crypto-native humor/culture, and hacks/security. Similar forms are
+# included where they are natural variants of the requested categories.
 CONTENT_TYPES = {
-    "satire": ("satire", "satirical", "parody", "parodying", "mocking", "mock"),
-    "ironic": ("ironic", "irony", "ironically", "plot twist"),
-    "funny": ("funny", "hilarious", "lol", "lmao", "haha", "joke", "jokes", "laugh"),
-    "metaphor": ("metaphor", "metaphorical", "analogy", "analogous", "like a", "is basically"),
     "research": (
-        "research", "study", "paper", "data", "analysis", "report", "findings",
-        "experiment", "investigation", "breakdown", "on-chain analysis",
+        "research", "study", "paper", "data", "report", "findings",
+        "experiment", "investigation", "deep dive", "deep-dive",
+        "case study", "postmortem", "forensics", "breakdown",
     ),
-    "comic": ("comic", "comics", "cartoon", "illustration", "illustrated", "meme"),
-    "finding": (
-        "finding", "findings", "discovered", "discovery", "reveals", "revealed",
-        "interesting", "unexpected", "observation", "odd", "weird",
+    "onchain_findings": (
+        "on-chain findings", "onchain findings", "on-chain data",
+        "onchain data", "on-chain analysis", "onchain analysis",
+        "on-chain activity", "onchain activity", "wallet activity",
+        "address activity", "transaction analysis",
     ),
-    "building": (
-        "building", "build", "built", "shipping", "shipped", "ship", "launching",
-        "launched", "prototype", "mvp", "alpha", "beta", "demo", "maker",
-        "builder", "builders",
+    "analysis": (
+        "analysis", "analyze", "analysing", "analyzing", "breakdown",
+        "thesis", "market structure", "protocol analysis", "data analysis",
     ),
-    "idea": (
-        "idea", "ideas", "concept", "what if", "imagine", "someone should build",
-        "should build", "could build", "would be cool", "i wish there was",
-        "new way", "new primitive", "unmet need",
+    "discovery": (
+        "discovery", "discovered", "discover", "reveals", "revealed",
+        "finding", "findings", "interesting", "unexpected", "surprising",
+        "observation", "observed", "odd", "weird", "hidden", "overlooked",
+        "under the radar", "noticed", "new insight",
     ),
-    "product": (
-        "product", "app", "application", "tool", "dapp", "platform", "service",
-        "consumer", "user experience", "ux", "onboarding", "payments",
+    "satire": (
+        "satire", "satirical", "parody", "parodying", "mocking", "mock",
     ),
-    "technical": (
-        "technical", "implementation", "architecture", "infrastructure", "infra",
-        "protocol design", "mechanism", "primitive", "smart contract", "sdk",
-        "api", "library", "developer", "developers", "devtool", "devtools",
+    "irony": (
+        "ironic", "irony", "ironically", "plot twist", "the irony",
     ),
-    "opensource": (
-        "open source", "opensource", "github", "repo", "repository", "sdk",
-        "library", "framework", "code", "pull request",
+    "funny": (
+        "funny", "hilarious", "lol", "lmao", "haha", "joke", "jokes",
+        "laugh", "laughing", "comedy",
     ),
-    "experiment": (
-        "experiment", "experimental", "prototype", "proof of concept", "poc",
-        "testnet", "testing", "trying", "tested", "benchmark",
+    "metaphor": (
+        "metaphor", "metaphorical", "analogy", "analogous", "like a",
+        "is basically", "think of it as",
     ),
-    "integration": (
-        "integration", "integrate", "integrated", "connect", "connected",
-        "crypto +", "web3 +", "with ai", "with gaming", "with payments",
-        "with social", "with depin",
-    ),
-    "problem": (
-        "problem", "pain point", "bottleneck", "friction", "challenge",
-        "hard to", "broken", "missing", "gap", "need a better",
-    ),
-    "application": (
-        "use case", "use cases", "payments", "remittance", "commerce", "creator",
-        "gaming", "social", "identity", "ticketing", "real world",
-    ),
-    # Campaign/opportunity types. These are first-class feed items, not
-    # dependent on also matching building/research/humor categories.
-    "hackathon": (
-        "hackathon", "hackathons", "buildathon", "builder competition",
-        "hackathon track", "hackathon prize", "hackathon bounty",
-    ),
-    "video": (
-        "video contest", "video competition", "video challenge", "video campaign",
-        "make a video", "create a video", "video creator", "youtube contest",
-        "shorts contest", "reels contest", "tiktok contest",
-    ),
-    "art_design": (
-        "art contest", "art competition", "design contest", "design competition",
-        "design challenge", "creative contest", "illustration contest",
-        "poster contest", "ui/ux contest", "ui ux contest",
-    ),
-    "content": (
-        "content contest", "content competition", "content campaign",
-        "creator campaign", "creator contest", "writing contest", "writing competition",
-        "article contest", "thread contest", "content challenge",
+    "comic": (
+        "comic", "comics", "cartoon", "illustration", "illustrated",
     ),
     "meme": (
-        "meme contest", "meme competition", "meme challenge", "meme campaign",
-        "meme bounty",
+        "meme", "memes", "memeing", "shitpost", "shitposting",
     ),
-    "bounty": (
-        "bounty", "bounties", "bug bounty", "build bounty", "developer bounty",
-        "content bounty", "creative bounty", "community bounty",
-    ),
-    "grant": (
-        "grant", "grants", "grant program", "builder grant", "creator grant",
-        "community grant", "funding opportunity",
-    ),
-    "ambassador": (
-        "ambassador program", "ambassador campaign", "community ambassador",
-        "creator program", "advocate program",
-    ),
-    "quest": (
-        "quest", "quests", "galxe", "zealy", "task campaign", "missions",
-    ),
-    "airdrop": (
-        "airdrop", "airdrop campaign", "token rewards", "token reward",
-        "points program", "points campaign",
-    ),
-    "testnet": (
-        "testnet campaign", "testnet rewards", "testnet incentive", "devnet rewards",
-        "testnet bounty", "testnet program",
-    ),
-    "trading": (
-        "trading competition", "trading contest", "trading challenge",
-        "trading campaign", "volume competition", "pnl competition",
-    ),
-    "nft_token": (
-        "nft contest", "nft campaign", "nft rewards", "mint campaign",
-        "token sale", "token launch campaign", "ido", "ico",
-    ),
-    "research_campaign": (
-        "research contest", "research competition", "research bounty",
-        "research campaign", "research challenge",
-    ),
-    "innovation": (
-        "idea contest", "idea competition", "innovation contest",
-        "innovation challenge", "startup competition", "pitch competition",
-        "product challenge",
-    ),
-    "community": (
-        "community campaign", "community challenge", "community contest",
-        "community rewards", "community program",
-    ),
-    "reward": (
-        "reward", "rewards", "prize", "prizes", "cash prize", "crypto prize",
-        "earn crypto", "earn tokens", "paid campaign", "paid opportunity",
+    "hack_security": (
+        "hack", "hacked", "hacking", "exploit", "exploited", "exploit",
+        "vulnerability", "vulnerable", "security", "security incident",
+        "breach", "attack", "attacked", "drained", "drainer",
+        "smart contract exploit", "protocol exploit", "defi exploit",
+        "postmortem", "root cause", "incident response",
     ),
 }
 
@@ -151,8 +76,6 @@ def classify(item):
     crypto = _has_term(low, CRYPTO_TERMS)
     types = [label for label, words in CONTENT_TYPES.items() if _has_term(low, words)]
 
-    # Source queries can establish crypto context; content still needs a
-    # requested form such as a campaign/opportunity, building, research, or humor.
     if item.get("source") in {"x", "reddit", "medium", "telegram", "bluesky", "mastodon"}:
         crypto = crypto or bool(item.get("crypto_query"))
 
