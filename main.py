@@ -2,7 +2,7 @@ import argparse
 from datetime import datetime, timedelta, timezone
 
 from classifier import classify, is_relevant
-from config import ENABLE_WEB_SOURCES, LOOKBACK_HOURS, MAX_FEED_ITEMS
+from config import ENABLE_WEB_SOURCES, LOOKBACK_HOURS
 from feed import format_item
 from state import load_seen, save_seen
 from telegram import send_message
@@ -51,8 +51,9 @@ def main():
         new_seen.add(key)
         clean.append(item)
 
-    # No signal/quality scoring and no ranking. Preserve source discovery order.
-    selected = clean[:MAX_FEED_ITEMS]
+    # No signal/quality scoring, ranking, or item-count cap.
+    # Every new item that passes the relevance filters is sent in this scheduled run.
+    selected = clean
 
     for item in selected:
         send_message(format_item(item), dry_run=not args.telegram or args.test)
