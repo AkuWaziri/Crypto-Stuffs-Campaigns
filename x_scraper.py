@@ -9,14 +9,33 @@ from config import X_AUTH_TOKEN, X_CT0, X_SEARCH_LIMIT, X_SEARCH_QUERY_ID
 
 # Search for the kinds of crypto posts the feed is meant to surface.
 X_QUERIES = [
+    # Humor / culture
     "crypto satire", "crypto satirical", "crypto parody", "crypto irony",
     "crypto ironic", "crypto funny", "crypto hilarious", "crypto joke",
     "crypto meme", "crypto comic", "crypto cartoon", "crypto metaphor",
-    "crypto analogy", "crypto research", "crypto study", "crypto data",
-    "crypto findings", "crypto investigation", "crypto experiment",
-    "crypto discovery", "crypto interesting", "web3 satire", "web3 funny",
-    "defi satire", "defi funny", "bitcoin irony", "ethereum meme",
-    "crypto be like", "web3 be like",
+    "crypto analogy", "crypto be like", "web3 be like",
+    # Research / discoveries
+    "crypto research", "crypto study", "crypto data", "crypto findings",
+    "crypto discovery", "crypto investigation", "crypto experiment",
+    "crypto analysis", "onchain findings", "onchain research",
+    # Building / shipping
+    "crypto building", "crypto builder", "crypto builders", "building onchain",
+    "building in web3", "shipping crypto", "crypto prototype", "crypto MVP",
+    "crypto hackathon", "web3 builders", "web3 building", "defi building",
+    # Ideas / products
+    "crypto idea", "crypto ideas", "web3 idea", "web3 ideas",
+    "crypto product idea", "crypto app idea", "protocol idea",
+    "someone should build crypto", "what if crypto", "new crypto primitive",
+    "crypto use case", "crypto problem", "web3 problem",
+    # Technical / open source
+    "crypto architecture", "web3 architecture", "crypto infrastructure",
+    "crypto technical", "smart contract design", "crypto open source",
+    "web3 open source", "crypto SDK", "crypto developer tool",
+    "crypto integration", "web3 integration",
+    # Applications / emerging combinations
+    "crypto payments", "crypto remittance", "crypto identity",
+    "crypto gaming", "crypto social", "crypto creator",
+    "crypto AI", "web3 AI", "crypto DePIN", "crypto commerce",
 ]
 
 def _cookie_header():
