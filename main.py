@@ -1,11 +1,12 @@
 import argparse
 from datetime import datetime, timedelta, timezone
+
 from classifier import classify, is_relevant
 from config import ENABLE_WEB_SOURCES, LOOKBACK_HOURS, MAX_FEED_ITEMS
 from feed import format_item
 from state import load_seen, save_seen
 from telegram import send_message
-from web_sources import fetch_public_campaigns
+from web_sources import fetch_public_content
 from x_scraper import search_x
 
 def recent(item):
@@ -13,8 +14,9 @@ def recent(item):
     if not raw:
         return True
     try:
-        return datetime.fromisoformat(raw.replace("Z", "+00:00")) >= datetime.now(timezone.utc) - timedelta(hours=LOOKBACK_HOURS)
-    except ValueError:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        return dt >= datetime.now(timezone.utc) - timedelta(hours=LOOKBACK_HOURS)
+    except (ValueError, TypeError):
         return True
 
 def main():
@@ -23,10 +25,10 @@ def main():
     parser.add_argument("--test", action="store_true")
     args = parser.parse_args()
 
-    print("CRYPTO-STUFFS-CAMPAIGNS")
+    print("CRYPTO-STUFFS")
     print("mode=read-only")
     print("execution=disabled")
-    print("sources=X + public crypto campaign platforms")
+    print("sources=X + Reddit + Medium + Telegram + Bluesky")
 
     items = []
     try:
@@ -34,7 +36,7 @@ def main():
     except Exception as exc:
         print(f"x_error={exc}")
     if ENABLE_WEB_SOURCES:
-        items.extend(fetch_public_campaigns())
+        items.extend(fetch_public_content())
 
     seen = load_seen()
     new_seen = set(seen)
@@ -49,7 +51,7 @@ def main():
         new_seen.add(key)
         clean.append(item)
 
-    clean.sort(key=lambda x: x.get("campaign_score", 0), reverse=True)
+    # No signal/quality scoring and no ranking. Preserve source discovery order.
     selected = clean[:MAX_FEED_ITEMS]
 
     for item in selected:
