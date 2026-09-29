@@ -16,6 +16,21 @@ from config import (
 )
 
 CONTENT_QUERIES = (
+    # Campaigns / opportunities
+    "crypto campaign", "web3 campaign", "crypto rewards", "web3 rewards",
+    "crypto contest", "web3 contest", "crypto competition",
+    "crypto hackathon", "web3 hackathon", "crypto buildathon",
+    "crypto bounty", "web3 bounty", "crypto grants", "web3 grants",
+    "crypto creator campaign", "web3 creator campaign",
+    "crypto video contest", "web3 video contest", "crypto video challenge",
+    "crypto art contest", "web3 design contest", "crypto meme contest",
+    "crypto writing contest", "crypto content contest", "crypto research bounty",
+    "crypto ambassador program", "web3 ambassador", "crypto community challenge",
+    "crypto testnet rewards", "crypto devnet rewards",
+    "crypto trading competition", "crypto trading contest",
+    "crypto NFT campaign", "crypto token rewards", "crypto points campaign",
+    "crypto airdrop", "crypto quests", "crypto missions",
+    "crypto idea competition", "web3 innovation challenge", "crypto pitch competition",
     # Humor / culture
     "crypto satire", "crypto ironic", "crypto funny", "crypto meme",
     "crypto comic", "crypto metaphor",
@@ -23,7 +38,7 @@ CONTENT_QUERIES = (
     "crypto research", "crypto findings", "crypto discovery",
     "crypto investigation", "crypto experiment", "crypto analysis",
     # Building / ideas
-    "crypto building", "crypto builders", "crypto prototype", "crypto hackathon",
+    "crypto building", "crypto builders", "crypto prototype",
     "crypto idea", "crypto ideas", "crypto product", "crypto app",
     "protocol idea", "crypto use case", "crypto problem",
     # Technical / open source
