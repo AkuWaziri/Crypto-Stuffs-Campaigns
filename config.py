@@ -16,14 +16,14 @@ X_SEARCH_QUERY_ID = os.getenv("X_SEARCH_QUERY_ID", "")
 
 REDDIT_SUBREDDITS = _csv(
     "REDDIT_SUBREDDITS",
-    "CryptoCurrency,Bitcoin,ethereum,defi,solana,ethfinance",
+    "CryptoCurrency,Bitcoin,ethereum,defi,solana,ethfinance,ethdev,solidity,CryptoTechnology",
 )
 MEDIUM_TAGS = _csv(
     "MEDIUM_TAGS",
-    "crypto,blockchain,defi,bitcoin,ethereum,solana",
+    "crypto,blockchain,defi,bitcoin,ethereum,solana,web3,smart-contracts,ethereum-development",
 )
 TELEGRAM_CHANNELS = _csv("TELEGRAM_CHANNELS", "")
 BLUESKY_QUERIES = _csv(
     "BLUESKY_QUERIES",
-    "crypto satire,crypto funny,crypto meme,crypto comic,crypto research,crypto findings,crypto irony",
+    "crypto satire,crypto funny,crypto meme,crypto comic,crypto research,crypto findings,crypto irony,crypto building,crypto builders,crypto ideas,crypto product,crypto architecture,crypto open source,crypto developer,crypto integration,crypto use case",
 )
