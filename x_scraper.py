@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-import json
+import requests
 
 from tweetkit_x import TweetKit
 from tweetkit_x import constants as C
@@ -7,14 +7,16 @@ from tweetkit_x.cookie import ct0_of
 from tweetkit_x.client import _walk_timeline
 from config import X_AUTH_TOKEN, X_CT0, X_SEARCH_LIMIT, X_SEARCH_QUERY_ID
 
+# Search for the kinds of crypto posts the feed is meant to surface.
 X_QUERIES = [
-    "crypto airdrop", "crypto points", "crypto campaign", "crypto rewards",
-    "crypto quest", "crypto contest", "crypto competition", "crypto bounty",
-    "crypto ambassador", "crypto creator", "crypto meme contest",
-    "crypto art contest", "crypto video contest", "crypto content campaign",
-    "crypto IDO", "crypto token sale", "crypto NFT mint", "crypto testnet",
-    "crypto mainnet", "crypto devnet", "crypto builders", "crypto hackathon",
-    "crypto grant", "crypto apply",
+    "crypto satire", "crypto satirical", "crypto parody", "crypto irony",
+    "crypto ironic", "crypto funny", "crypto hilarious", "crypto joke",
+    "crypto meme", "crypto comic", "crypto cartoon", "crypto metaphor",
+    "crypto analogy", "crypto research", "crypto study", "crypto data",
+    "crypto findings", "crypto investigation", "crypto experiment",
+    "crypto discovery", "crypto interesting", "web3 satire", "web3 funny",
+    "defi satire", "defi funny", "bitcoin irony", "ethereum meme",
+    "crypto be like", "web3 be like",
 ]
 
 def _cookie_header():
@@ -34,10 +36,8 @@ def _iso_created_at(value):
     return value
 
 def _search_without_transaction(tk, query, limit):
-    # SearchTimeline currently uses POST. Keep the query ID configurable.
     qid = X_SEARCH_QUERY_ID or "GcXk9vN_d1jUfHNqLacXQA"
     url = f"{C.GQL_BASE}/{qid}/SearchTimeline"
-
     headers = {
         "authorization": C.BEARER,
         "cookie": tk.cookie,
@@ -68,19 +68,11 @@ def _search_without_transaction(tk, query, limit):
         if cursor:
             variables["cursor"] = cursor
 
-        payload = {
-            "variables": variables,
-            "features": C.USER_TWEETS_FEATURES,
-            "fieldToggles": {"withArticleRichContentState": False},
-        }
-
         response = tk._session.post(
-            url,
-            json=payload,
-            headers=headers,
-            timeout=tk.timeout,
+            url, json={"variables": variables, "features": C.USER_TWEETS_FEATURES,
+                       "fieldToggles": {"withArticleRichContentState": False}},
+            headers=headers, timeout=tk.timeout,
         )
-
         if response.status_code != 200:
             raise RuntimeError(
                 f"SearchTimeline HTTP {response.status_code}: {response.text[:200]}"
@@ -100,7 +92,6 @@ def _search_without_transaction(tk, query, limit):
             "author": handle,
             "url": f"https://x.com/{handle}/status/{tweet['id']}",
         })
-
     output.sort(key=lambda item: item.get("created_at_ts", 0), reverse=True)
     return output[:limit]
 
@@ -123,6 +114,7 @@ def search_x():
                     "url": tweet.get("url", ""),
                     "created_at": _iso_created_at(tweet.get("created_at")),
                     "source": "x",
+                    "crypto_query": True,
                 })
         except Exception as exc:
             print(f"x_search_error={query}: {exc}")
