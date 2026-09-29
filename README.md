@@ -4,14 +4,21 @@ Crypto-content discovery feed for Telegram.
 
 ## What it watches
 
-Only crypto-related content that is:
-- Satirical or parody
-- Ironic
-- Funny or laughable
-- Metaphorical or analogy-driven
-- Research/data/experiment based
-- Comic/cartoon/meme based
-- An unusual or interesting finding/discovery
+The feed is intentionally broad: **crypto + something worth seeing**.
+
+It surfaces crypto-related:
+- Satire, parody, irony, jokes, memes and comics
+- Metaphors, analogies and unusual observations
+- Research, data, experiments, investigations and findings
+- Things people are actively building, shipping or prototyping
+- Product, app and protocol ideas
+- Technical architecture, mechanisms, primitives and infrastructure
+- Open-source repos, SDKs, libraries and developer tools
+- Hackathon builds, demos, MVPs, alpha and beta experiments
+- UX, onboarding, wallets, payments and other crypto product design
+- Problems, pain points and unmet needs worth solving
+- Integrations across crypto, AI, DePIN, gaming, social, identity and payments
+- Real-world crypto applications and new use cases
 
 ## Sources
 
