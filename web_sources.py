@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from urllib.parse import quote, urljoin
-import json
 import re
 import xml.etree.ElementTree as ET
 
 import requests
+from bs4 import BeautifulSoup
 
 from config import (
     USER_AGENT,
@@ -14,13 +15,16 @@ from config import (
     BLUESKY_QUERIES,
 )
 
-HEADERS = {"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml,application/json,application/xml"}
-
 CONTENT_QUERIES = (
     "crypto satire", "crypto ironic", "crypto funny", "crypto meme",
     "crypto comic", "crypto metaphor", "crypto research", "crypto findings",
     "crypto discovery", "crypto investigation",
 )
+
+HEADERS = {
+    "User-Agent": USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml,application/json,application/xml",
+}
 
 def _clean(text):
     return " ".join(str(text or "").split())
@@ -39,6 +43,14 @@ def _item(source, author, text, url, created_at=None, crypto_query=False):
         "crypto_query": crypto_query,
     }
 
+def _parse_date(value):
+    if not value:
+        return None
+    try:
+        return parsedate_to_datetime(value).astimezone(timezone.utc).isoformat()
+    except (TypeError, ValueError, OverflowError):
+        return value
+
 def _rss(url, source):
     response = requests.get(url, headers=HEADERS, timeout=20)
     response.raise_for_status()
@@ -48,7 +60,7 @@ def _rss(url, source):
         title = node.findtext("title", "")
         description = node.findtext("description", "")
         link = node.findtext("link", "")
-        pub = node.findtext("pubDate", "")
+        pub = _parse_date(node.findtext("pubDate", ""))
         author = node.findtext("{http://purl.org/dc/elements/1.1/}creator", "") or source
         items.append(_item(source, author, f"{title} {description}", link, pub, True))
     return items
@@ -57,7 +69,10 @@ def _reddit():
     items = []
     for subreddit in REDDIT_SUBREDDITS:
         for query in CONTENT_QUERIES:
-            url = f"https://www.reddit.com/r/{quote(subreddit)}/search.json?q={quote(query)}&restrict_sr=1&sort=new&t=month&limit=25"
+            url = (
+                f"https://www.reddit.com/r/{quote(subreddit)}/search.json"
+                f"?q={quote(query)}&restrict_sr=1&sort=new&t=month&limit=25"
+            )
             try:
                 response = requests.get(url, headers=HEADERS, timeout=20)
                 response.raise_for_status()
@@ -67,12 +82,16 @@ def _reddit():
                     permalink = post.get("permalink", "")
                     if not permalink:
                         continue
+                    created = (
+                        datetime.fromtimestamp(post["created_utc"], timezone.utc).isoformat()
+                        if post.get("created_utc") else None
+                    )
                     items.append(_item(
                         "reddit",
                         post.get("author") or subreddit,
                         f"{post.get('title', '')} {post.get('selftext', '')}",
                         urljoin("https://www.reddit.com", permalink),
-                        datetime.fromtimestamp(post["created_utc"], timezone.utc).isoformat() if post.get("created_utc") else None,
+                        created,
                         True,
                     ))
             except Exception as exc:
@@ -89,20 +108,17 @@ def _telegram():
         try:
             response = requests.get(url, headers=HEADERS, timeout=20)
             response.raise_for_status()
-            html = response.text
-            for match in re.finditer(
-                r'<div class="tgme_widget_message_wrap.*?</div>\\s*</div>\\s*</div>',
-                html, re.S,
-            ):
-                block = match.group(0)
-                text_match = re.search(r'<div class="tgme_widget_message_text[^>]*>(.*?)</div>', block, re.S)
-                if not text_match:
+            soup = BeautifulSoup(response.text, "html.parser")
+            for message in soup.select(".tgme_widget_message"):
+                text_node = message.select_one(".tgme_widget_message_text")
+                if not text_node:
                     continue
-                text = re.sub(r"<br\\s*/?>", "\\n", text_match.group(1))
-                text = re.sub(r"<[^>]+>", " ", text)
-                link_match = re.search(r'href="(https://t.me/[^"]+)"[^>]*class="tgme_widget_message_date"', block)
-                link = link_match.group(1) if link_match else url
-                items.append(_item("telegram", f"@{channel}", text, link, None, True))
+                text = text_node.get_text(" ", strip=True)
+                date_node = message.select_one(".tgme_widget_message_date")
+                link = date_node.get("href") if date_node else url
+                time_node = date_node.find("time") if date_node else None
+                created = time_node.get("datetime") if time_node else None
+                items.append(_item("telegram", f"@{channel}", text, link, created, True))
         except Exception as exc:
             print(f"telegram_error={channel}: {exc}")
     return items
@@ -110,9 +126,16 @@ def _telegram():
 def _bluesky():
     items = []
     for query in BLUESKY_QUERIES:
-        url = "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=" + quote(query) + "&limit=50"
+        url = (
+            "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts"
+            "?q=" + quote(query) + "&limit=50"
+        )
         try:
-            response = requests.get(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, timeout=20)
+            response = requests.get(
+                url,
+                headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+                timeout=20,
+            )
             response.raise_for_status()
             for post in response.json().get("posts", []):
                 record = post.get("record", {})
@@ -121,14 +144,16 @@ def _bluesky():
                 uri = post.get("uri", "")
                 rkey = uri.rsplit("/", 1)[-1]
                 url_out = f"https://bsky.app/profile/{author}/post/{rkey}"
-                created = record.get("createdAt")
-                items.append(_item("bluesky", author, text, url_out, created, True))
+                items.append(_item(
+                    "bluesky", author, text, url_out, record.get("createdAt"), True
+                ))
         except Exception as exc:
             print(f"bluesky_error={query}: {exc}")
     return items
 
 def fetch_public_content():
     items = []
+
     for tag in MEDIUM_TAGS:
         url = f"https://medium.com/feed/tag/{quote(tag)}"
         try:
@@ -162,6 +187,5 @@ def fetch_public_content():
         unique.append(item)
     return unique
 
-# Backward-compatible name for callers that still import the old function.
 def fetch_public_campaigns():
     return fetch_public_content()
