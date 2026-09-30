@@ -10,57 +10,36 @@ CRYPTO_TERMS = (
     "base", "cosmos", "polkadot", "avalanche", "near", "sui", "aptos",
 )
 
-# Deliberately narrow taxonomy: only research/discovery/analysis,
-# crypto-native humor/culture, and hacks/security. Similar forms are
-# included where they are natural variants of the requested categories.
+# ONLY crypto humor/culture categories requested by the user.
 CONTENT_TYPES = {
-    "research": (
-        "research", "study", "paper", "data", "report", "findings",
-        "experiment", "investigation", "deep dive", "deep-dive",
-        "case study", "postmortem", "forensics", "breakdown",
+    "crypto_satire": (
+        "crypto satire", "crypto satirical", "web3 satire", "web3 satirical",
+        "crypto parody", "web3 parody", "crypto spoof",
     ),
-    "onchain_findings": (
-        "on-chain findings", "onchain findings", "on-chain data",
-        "onchain data", "on-chain analysis", "onchain analysis",
-        "on-chain activity", "onchain activity", "wallet activity",
-        "address activity", "transaction analysis",
+    "funny_crypto_take": (
+        "funny crypto take", "funny crypto", "funny web3", "hilarious crypto",
+        "hilarious web3", "crypto joke", "crypto jokes", "crypto comedy",
+        "crypto funny", "crypto lol", "crypto lmao",
     ),
-    "analysis": (
-        "analysis", "analyze", "analysing", "analyzing", "breakdown",
-        "thesis", "market structure", "protocol analysis", "data analysis",
+    "meme_comic_crypto": (
+        "crypto meme", "crypto memes", "web3 meme", "web3 memes",
+        "crypto comic", "crypto comics", "web3 comic", "web3 comics",
+        "crypto cartoon", "web3 cartoon",
     ),
-    "discovery": (
-        "discovery", "discovered", "discover", "reveals", "revealed",
-        "finding", "findings", "interesting", "unexpected", "surprising",
-        "observation", "observed", "odd", "weird", "hidden", "overlooked",
-        "under the radar", "noticed", "new insight",
+    "funny_crypto_scene": (
+        "funny crypto scene", "crypto scene", "crypto moment", "crypto moments",
+        "crypto situation", "crypto situations", "crypto be like",
+        "web3 be like", "crypto irl", "crypto in real life",
     ),
-    "satire": (
-        "satire", "satirical", "parody", "parodying", "mocking", "mock",
+    "crypto_shitpost": (
+        "crypto shitpost", "crypto shitposts", "crypto shitposting",
+        "web3 shitpost", "web3 shitposts", "web3 shitposting",
+        "crypto shit poster", "crypto shitposter",
     ),
-    "irony": (
-        "ironic", "irony", "ironically", "plot twist", "the irony",
-    ),
-    "funny": (
-        "funny", "hilarious", "lol", "lmao", "haha", "joke", "jokes",
-        "laugh", "laughing", "comedy",
-    ),
-    "metaphor": (
-        "metaphor", "metaphorical", "analogy", "analogous", "like a",
-        "is basically", "think of it as",
-    ),
-    "comic": (
-        "comic", "comics", "cartoon", "illustration", "illustrated",
-    ),
-    "meme": (
-        "meme", "memes", "memeing", "shitpost", "shitposting",
-    ),
-    "hack_security": (
-        "hack", "hacked", "hacking", "exploit", "exploited", "exploit",
-        "vulnerability", "vulnerable", "security", "security incident",
-        "breach", "attack", "attacked", "drained", "drainer",
-        "smart contract exploit", "protocol exploit", "defi exploit",
-        "postmortem", "root cause", "incident response",
+    "crypto_metaphor": (
+        "crypto metaphor", "crypto metaphors", "web3 metaphor", "web3 metaphors",
+        "crypto analogy", "crypto analogies", "web3 analogy", "web3 analogies",
+        "crypto is like", "crypto feels like", "crypto basically",
     ),
 }
 
