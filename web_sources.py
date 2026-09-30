@@ -16,38 +16,17 @@ from config import (
 )
 
 CONTENT_QUERIES = (
-    # Campaigns / opportunities
-    "crypto campaign", "web3 campaign", "crypto rewards", "web3 rewards",
-    "crypto contest", "web3 contest", "crypto competition",
-    "crypto hackathon", "web3 hackathon", "crypto buildathon",
-    "crypto bounty", "web3 bounty", "crypto grants", "web3 grants",
-    "crypto creator campaign", "web3 creator campaign",
-    "crypto video contest", "web3 video contest", "crypto video challenge",
-    "crypto art contest", "web3 design contest", "crypto meme contest",
-    "crypto writing contest", "crypto content contest", "crypto research bounty",
-    "crypto ambassador program", "web3 ambassador", "crypto community challenge",
-    "crypto testnet rewards", "crypto devnet rewards",
-    "crypto trading competition", "crypto trading contest",
-    "crypto NFT campaign", "crypto token rewards", "crypto points campaign",
-    "crypto airdrop", "crypto quests", "crypto missions",
-    "crypto idea competition", "web3 innovation challenge", "crypto pitch competition",
-    # Humor / culture
-    "crypto satire", "crypto ironic", "crypto funny", "crypto meme",
-    "crypto comic", "crypto metaphor",
-    # Research / findings
-    "crypto research", "crypto findings", "crypto discovery",
-    "crypto investigation", "crypto experiment", "crypto analysis",
-    # Building / ideas
-    "crypto building", "crypto builders", "crypto prototype",
-    "crypto idea", "crypto ideas", "crypto product", "crypto app",
-    "protocol idea", "crypto use case", "crypto problem",
-    # Technical / open source
-    "crypto architecture", "crypto infrastructure", "crypto technical",
-    "crypto open source", "crypto SDK", "crypto developer", "crypto integration",
-    # Applications
-    "crypto payments", "crypto identity", "crypto gaming", "crypto social",
-    "crypto creator", "crypto AI", "crypto DePIN", "crypto commerce",
+    "crypto satire", "web3 satire", "crypto parody", "web3 parody",
+    "funny crypto", "funny web3", "crypto joke", "crypto jokes", "crypto comedy",
+    "crypto meme", "crypto memes", "web3 meme", "web3 memes",
+    "crypto comic", "crypto comics", "web3 comic", "crypto cartoon",
+    "crypto scene", "crypto moment", "crypto moments", "crypto situation",
+    "crypto be like", "web3 be like", "crypto irl", "crypto in real life",
+    "crypto shitpost", "crypto shitposts", "crypto shitposting", "web3 shitpost",
+    "crypto metaphor", "crypto metaphors", "web3 metaphor", "crypto analogy",
+    "crypto analogies", "crypto is like", "crypto feels like", "crypto basically",
 )
+
 
 HEADERS = {
     "User-Agent": USER_AGENT,
@@ -151,6 +130,31 @@ def _telegram():
             print(f"telegram_error={channel}: {exc}")
     return items
 
+def _farcaster():
+    items = []
+    queries = CONTENT_QUERIES
+    for query in queries:
+        url = "https://searchcaster.xyz/api/search" + "?q=" + quote(query)
+        try:
+            response = requests.get(url, headers=HEADERS, timeout=20)
+            response.raise_for_status()
+            data = response.json()
+            casts = data.get("casts", []) if isinstance(data, dict) else []
+            for cast in casts:
+                text = cast.get("text", "")
+                if not text:
+                    continue
+                author_obj = cast.get("author") or {}
+                author = author_obj.get("username") or author_obj.get("display_name") or "farcaster"
+                cast_url = cast.get("url") or cast.get("hash")
+                if cast_url and not str(cast_url).startswith("http"):
+                    cast_url = "https://warpcast.com/" + str(cast_url).lstrip("/")
+                created = cast.get("timestamp") or cast.get("created_at")
+                items.append(_item("farcaster", author, text, cast_url, created, True))
+        except Exception as exc:
+            print(f"farcaster_error={query}: {exc}")
+    return items
+
 def _bluesky():
     items = []
     for query in BLUESKY_QUERIES:
@@ -205,6 +209,10 @@ def fetch_public_content():
         found = _bluesky()
         items.extend(found)
         print(f"bluesky_items={len(found)}")
+
+    found = _farcaster()
+    items.extend(found)
+    print(f"farcaster_items={len(found)}")
 
     unique, seen = [], set()
     for item in items:
