@@ -134,12 +134,12 @@ def _farcaster():
     items = []
     queries = CONTENT_QUERIES
     for query in queries:
-        url = "https://searchcaster.xyz/api/search" + "?q=" + quote(query)
+        url = "https://api.warpcast.com/v2/search-casts?q=" + quote(query) + "&limit=50"
         try:
             response = requests.get(url, headers=HEADERS, timeout=20)
             response.raise_for_status()
             data = response.json()
-            casts = data.get("casts", []) if isinstance(data, dict) else []
+            casts = data.get("result", {}).get("casts", []) if isinstance(data, dict) else []
             for cast in casts:
                 text = cast.get("text", "")
                 if not text:
@@ -148,7 +148,8 @@ def _farcaster():
                 author = author_obj.get("username") or author_obj.get("display_name") or "farcaster"
                 cast_url = cast.get("url") or cast.get("hash")
                 if cast_url and not str(cast_url).startswith("http"):
-                    cast_url = "https://warpcast.com/" + str(cast_url).lstrip("/")
+                    username = author_obj.get("username", "farcaster")
+                    cast_url = f"https://warpcast.com/{username}/{str(cast_url).replace("0x", "")}"
                 created = cast.get("timestamp") or cast.get("created_at")
                 items.append(_item("farcaster", author, text, cast_url, created, True))
         except Exception as exc:
