@@ -28,7 +28,7 @@ def main():
     print("CRYPTO-STUFFS")
     print("mode=read-only")
     print("execution=disabled")
-    print("sources=X + Reddit + Medium + Telegram + Bluesky")
+    print("sources=X + Reddit + Medium + Telegram + Bluesky + Farcaster")
 
     items = []
     try:
@@ -48,14 +48,16 @@ def main():
         key = item.get("url") or item.get("id")
         if not key or key in seen:
             continue
-        new_seen.add(key)
         clean.append(item)
 
-    # Send up to the configured number of qualified new items per schedule.
+    # Only mark items that are actually selected/sent as seen.
     selected = clean[:MAX_FEED_ITEMS]
 
     for item in selected:
         send_message(format_item(item), dry_run=not args.telegram or args.test)
+        key = item.get("url") or item.get("id")
+        if key:
+            new_seen.add(key)
 
     save_seen(new_seen)
     print(f"discovered={len(items)}")
