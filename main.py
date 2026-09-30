@@ -14,9 +14,16 @@ def recent(item):
     if not raw:
         return True
     try:
-        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if isinstance(raw, (int, float)):
+            dt = datetime.fromtimestamp(raw, timezone.utc)
+        elif isinstance(raw, str):
+            dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        else:
+            return True
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
         return dt >= datetime.now(timezone.utc) - timedelta(hours=LOOKBACK_HOURS)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return True
 
 def main():
