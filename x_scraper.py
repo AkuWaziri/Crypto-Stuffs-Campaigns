@@ -7,23 +7,19 @@ from tweetkit_x.cookie import ct0_of
 from tweetkit_x.client import _walk_timeline
 from config import X_AUTH_TOKEN, X_CT0, X_SEARCH_LIMIT, X_SEARCH_QUERY_ID
 
-# Search only for the requested crypto research, discovery, analysis,
-# humor/culture, and hacks/security categories.
+# Search ONLY for crypto humor/culture categories requested by the user.
 X_QUERIES = [
-    "crypto research", "crypto research paper", "crypto findings",
-    "onchain findings", "on-chain findings", "crypto analysis",
-    "defi analysis", "stablecoin analysis", "crypto discovery",
-    "crypto investigation", "crypto deep dive", "crypto case study",
-    "crypto postmortem", "crypto forensics", "crypto data",
-    "crypto experiment", "crypto unexpected", "crypto interesting",
-    "crypto satire", "crypto satirical", "crypto parody", "crypto irony",
-    "crypto ironic", "crypto funny", "crypto hilarious", "crypto joke",
-    "crypto meme", "crypto memes", "crypto comic", "crypto cartoon",
-    "crypto metaphor", "crypto analogy", "crypto be like", "web3 be like",
-    "crypto hack", "crypto hacked", "crypto exploit", "crypto vulnerability",
-    "crypto security", "crypto breach", "defi hack", "defi exploit",
-    "smart contract exploit", "protocol exploit", "crypto attack",
-    "crypto scam analysis",
+    "crypto satire", "crypto satirical", "web3 satire", "crypto parody",
+    "web3 parody", "funny crypto take", "funny crypto", "funny web3",
+    "hilarious crypto", "crypto joke", "crypto jokes", "crypto comedy",
+    "crypto meme", "crypto memes", "web3 meme", "web3 memes",
+    "crypto comic", "crypto comics", "web3 comic", "crypto cartoon",
+    "funny crypto scene", "crypto scene", "crypto moment", "crypto moments",
+    "crypto situation", "crypto situations", "crypto be like", "web3 be like",
+    "crypto irl", "crypto in real life", "crypto shitpost", "crypto shitposts",
+    "crypto shitposting", "web3 shitpost", "crypto metaphor", "crypto metaphors",
+    "web3 metaphor", "crypto analogy", "crypto analogies", "crypto is like",
+    "crypto feels like", "crypto basically",
 ]
 
 def _cookie_header():
