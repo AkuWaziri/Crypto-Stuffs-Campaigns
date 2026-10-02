@@ -9,17 +9,14 @@ from config import X_AUTH_TOKEN, X_CT0, X_SEARCH_LIMIT, X_SEARCH_QUERY_ID
 
 # Search ONLY for crypto humor/culture categories requested by the user.
 X_QUERIES = [
-    "crypto satire", "crypto satirical", "web3 satire", "crypto parody",
-    "web3 parody", "funny crypto take", "funny crypto", "funny web3",
-    "hilarious crypto", "crypto joke", "crypto jokes", "crypto comedy",
+    "crypto satire", "crypto parody", "crypto irony", "funny crypto",
+    "funny web3", "crypto joke", "crypto jokes", "crypto comedy",
     "crypto meme", "crypto memes", "web3 meme", "web3 memes",
     "crypto comic", "crypto comics", "web3 comic", "crypto cartoon",
-    "funny crypto scene", "crypto scene", "crypto moment", "crypto moments",
-    "crypto situation", "crypto situations", "crypto be like", "web3 be like",
-    "crypto irl", "crypto in real life", "crypto shitpost", "crypto shitposts",
-    "crypto shitposting", "web3 shitpost", "crypto metaphor", "crypto metaphors",
-    "web3 metaphor", "crypto analogy", "crypto analogies", "crypto is like",
-    "crypto feels like", "crypto basically",
+    "crypto shitpost", "crypto shitposts", "crypto shitposting",
+    "web3 shitpost", "crypto humor", "web3 humor", "crypto be like",
+    "web3 be like", "crypto irl", "crypto in real life", "crypto moment",
+    "crypto moments", "crypto situation", "crypto situations",
 ]
 
 def _cookie_header():
