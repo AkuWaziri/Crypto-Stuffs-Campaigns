@@ -25,5 +25,5 @@ MEDIUM_TAGS = _csv(
 TELEGRAM_CHANNELS = _csv("TELEGRAM_CHANNELS", "")
 BLUESKY_QUERIES = _csv(
     "BLUESKY_QUERIES",
-    "crypto satire,funny crypto take,funny crypto,crypto meme,crypto memes,crypto comic,crypto comics,funny crypto scene,crypto scene,crypto moment,crypto be like,crypto shitpost,crypto shitposts,crypto shitposting,crypto metaphor,crypto metaphors,crypto analogy,crypto analogies",
+    "crypto satire,crypto parody,crypto irony,funny crypto,funny web3,crypto joke,crypto jokes,crypto comedy,crypto meme,crypto memes,crypto comic,crypto comics,crypto cartoon,crypto shitpost,crypto shitposts,crypto shitposting,crypto humor,web3 humor,crypto be like,web3 be like,crypto irl,crypto in real life,crypto moment,crypto situation",
 )
