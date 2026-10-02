@@ -56,6 +56,24 @@ def _find_views(obj):
             if n is not None: return n
     return None
 
+def _tweet_views_by_id(obj, out=None):
+    """Extract view counts keyed to tweet ids from the raw X GraphQL tree."""
+    out = {} if out is None else out
+    if isinstance(obj, dict):
+        lg = obj.get("legacy")
+        if isinstance(lg, dict) and lg.get("full_text"):
+            tid = lg.get("id_str") or obj.get("rest_id")
+            if tid:
+                views = _find_views(obj)
+                if views is not None:
+                    out[str(tid)] = views
+        for value in obj.values():
+            _tweet_views_by_id(value, out)
+    elif isinstance(obj, list):
+        for value in obj:
+            _tweet_views_by_id(value, out)
+    return out
+
 def _search(tk, query, limit):
     qid = C.__dict__.get("SEARCH_TIMELINE", "M1jEez78PEfVfbQLvlWMvQ")
     url = f"{C.GQL_BASE}/{qid}/SearchTimeline"
@@ -70,7 +88,13 @@ def _search(tk, query, limit):
         response = tk._session.post(url,json={"variables":variables,"features":C.USER_TWEETS_FEATURES,
             "fieldToggles":{"withArticleRichContentState":False}},headers=headers,timeout=tk.timeout)
         response.raise_for_status()
-        before=len(tweets); cursor=_walk_timeline(response.json(),tweets,users)
+        raw = response.json()
+        view_counts = _tweet_views_by_id(raw)
+        before=len(tweets)
+        cursor=_walk_timeline(raw,tweets,users)
+        for tid, views in view_counts.items():
+            if tid in tweets:
+                tweets[tid]["views"] = views
         if len(tweets)==before or not cursor or len(tweets)>=limit: break
     return [{**tweet,"author":users.get(tweet.get("author_id"),"unknown"),
              "url":f"https://x.com/{users.get(tweet.get('author_id'),'unknown')}/status/{tweet['id']}"}
@@ -80,16 +104,19 @@ def search_high_performing_x():
     tk=TweetKit(cookie=_cookie_header(),timeout=30)
     found=[]; seen=set()
     for niche in CRYPTO_NICHES:
-        try: candidates=_search(tk,f"{niche} min_faves:100",HIGH_PERFORMANCE_SEARCH_LIMIT)
+        try: candidates=_search(tk,niche,HIGH_PERFORMANCE_SEARCH_LIMIT)
         except Exception as exc:
             print(f"high_performance_search_error={niche}: {exc}"); continue
         for tweet in candidates:
             tid=str(tweet.get("id",""))
             if not tid or tid in seen: continue
-            seen.add(tid); views=_find_views(tweet)
+            seen.add(tid); views=tweet.get("views")
             if views is None:
-                try: views=_find_views(tk.get_tweet(tid))
-                except Exception as exc: print(f"high_performance_detail_error={tid}: {exc}")
+                try:
+                    detail = tk.get_tweet(tid)
+                    views = _find_views(detail)
+                except Exception as exc:
+                    print(f"high_performance_detail_error={tid}: {exc}")
             if views is None or views < HIGH_PERFORMANCE_MIN_VIEWS: continue
             found.append({"id":tid,"author":tweet.get("author","unknown"),"text":" ".join(str(tweet.get("text","")).split()),
                           "url":tweet.get("url",""),"created_at":_iso(tweet.get("created_at")),
