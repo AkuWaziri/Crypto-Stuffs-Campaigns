@@ -27,3 +27,7 @@ BLUESKY_QUERIES = _csv(
     "BLUESKY_QUERIES",
     "crypto satire,crypto parody,crypto irony,funny crypto,funny web3,crypto joke,crypto jokes,crypto comedy,crypto meme,crypto memes,crypto comic,crypto comics,crypto cartoon,crypto shitpost,crypto shitposts,crypto shitposting,crypto humor,web3 humor,crypto be like,web3 be like,crypto irl,crypto in real life,crypto moment,crypto situation",
 )
+
+HIGH_PERFORMANCE_MIN_VIEWS = int(os.getenv("HIGH_PERFORMANCE_MIN_VIEWS", "100000"))
+HIGH_PERFORMANCE_SEARCH_LIMIT = int(os.getenv("HIGH_PERFORMANCE_SEARCH_LIMIT", "10"))
+HIGH_PERFORMANCE_MAX_ITEMS = int(os.getenv("HIGH_PERFORMANCE_MAX_ITEMS", "10"))
