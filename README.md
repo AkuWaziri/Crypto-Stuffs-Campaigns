@@ -4,21 +4,11 @@ Crypto-content discovery feed for Telegram.
 
 ## What it watches
 
-The feed is intentionally broad: **crypto + something worth seeing**.
+The feed is now focused on one category only:
 
-It surfaces crypto-related:
-- Satire, parody, irony, jokes, memes and comics
-- Metaphors, analogies and unusual observations
-- Research, data, experiments, investigations and findings
-- Things people are actively building, shipping or prototyping
-- Product, app and protocol ideas
-- Technical architecture, mechanisms, primitives and infrastructure
-- Open-source repos, SDKs, libraries and developer tools
-- Hackathon builds, demos, MVPs, alpha and beta experiments
-- UX, onboarding, wallets, payments and other crypto product design
-- Problems, pain points and unmet needs worth solving
-- Integrations across crypto, AI, DePIN, gaming, social, identity and payments
-- Real-world crypto applications and new use cases
+- **Funny/creative crypto content** — satire, parody, irony, jokes, memes, comics, humorous observations, funny crypto situations, shitposts and other genuinely humorous/creative crypto content.
+
+All other content categories are sunset.
 
 ## Sources
 
@@ -27,11 +17,11 @@ It surfaces crypto-related:
 - Medium
 - Public Telegram channels
 - Bluesky
-- Additional public sources can be added through the source modules
+- Farcaster
 
 ## Filtering
 
-Every item must be crypto-related and match at least one requested content form.
+Every item must be crypto-related and match the **Funny/creative crypto content** category.
 
 There is no quality score, signal score, ranking, campaign score, or campaign/reward classification.
 
