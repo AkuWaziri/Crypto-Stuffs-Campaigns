@@ -8,6 +8,8 @@ from state import load_seen, save_seen
 from telegram import send_message
 from web_sources import fetch_public_content
 from x_scraper import search_x
+from high_performance import search_high_performing_x
+from config import HIGH_PERFORMANCE_MAX_ITEMS
 
 def recent(item):
     raw = item.get("created_at")
@@ -67,6 +69,26 @@ def main():
             new_seen.add(key)
 
     save_seen(new_seen)
+
+    # Separate lane: high-performing crypto posts with 100K+ views.
+    try:
+        high_performing = search_high_performing_x()
+        high_selected = high_performing[:HIGH_PERFORMANCE_MAX_ITEMS]
+        for item in high_selected:
+            send_message(
+                "🔥 HIGH-PERFORMING CRYPTO POST\\n\\n"
+                f"NICHE: {item.get('niche', 'crypto')}\\n"
+                f"VIEWS: {item.get('views', 0):,}\\n"
+                f"FROM: @{item.get('author', 'unknown').lstrip('@')}\\n\\n"
+                f"{item.get('text', '')[:700]}\\n\\n"
+                f"🔗 {item.get('url', '')}",
+                dry_run=not args.telegram or args.test,
+            )
+        print(f"high_performing_found={len(high_performing)}")
+        print(f"high_performing_sent={len(high_selected)}")
+    except Exception as exc:
+        print(f"high_performance_error={exc}")
+
     print(f"discovered={len(items)}")
     print(f"new_relevant={len(clean)}")
     print(f"selected={len(selected)}")
