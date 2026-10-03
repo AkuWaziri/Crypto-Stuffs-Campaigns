@@ -1,32 +1,8 @@
 import argparse
-from datetime import datetime, timedelta, timezone
 
-from classifier import classify, is_relevant
-from config import ENABLE_WEB_SOURCES, LOOKBACK_HOURS, MAX_FEED_ITEMS
-from feed import format_item
-from state import load_seen, save_seen
-from telegram import send_message
-from web_sources import fetch_public_content
-from x_scraper import search_x
-from high_performance import search_high_performing_x
 from config import HIGH_PERFORMANCE_MAX_ITEMS
-
-def recent(item):
-    raw = item.get("created_at")
-    if not raw:
-        return True
-    try:
-        if isinstance(raw, (int, float)):
-            dt = datetime.fromtimestamp(raw, timezone.utc)
-        elif isinstance(raw, str):
-            dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        else:
-            return True
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt >= datetime.now(timezone.utc) - timedelta(hours=LOOKBACK_HOURS)
-    except (ValueError, TypeError, OverflowError):
-        return True
+from telegram import send_message
+from high_performance import search_high_performing_x
 
 def main():
     parser = argparse.ArgumentParser(description="Crypto-Stuffs-Campaigns")
@@ -37,62 +13,30 @@ def main():
     print("CRYPTO-STUFFS")
     print("mode=read-only")
     print("execution=disabled")
-    print("sources=X + Reddit + Medium + Telegram + Bluesky + Farcaster")
+    print("feature=viral_and_trending_crypto_posts")
+    print("recency=last_7_days")
+    print("threshold=20K_views")
+    print("viral=50K+_views")
+    print("max_per_run=5")
 
-    items = []
     try:
-        items.extend(search_x())
-    except Exception as exc:
-        print(f"x_error={exc}")
-    if ENABLE_WEB_SOURCES:
-        items.extend(fetch_public_content())
-
-    seen = load_seen()
-    new_seen = set(seen)
-    clean = []
-    for item in items:
-        item = classify(item)
-        if not recent(item) or not is_relevant(item):
-            continue
-        key = item.get("url") or item.get("id")
-        if not key or key in seen:
-            continue
-        clean.append(item)
-
-    # Only mark items that are actually selected/sent as seen.
-    selected = clean[:MAX_FEED_ITEMS]
-
-    for item in selected:
-        send_message(format_item(item), dry_run=not args.telegram or args.test)
-        key = item.get("url") or item.get("id")
-        if key:
-            new_seen.add(key)
-
-    save_seen(new_seen)
-
-    # Separate lane: high-performing crypto posts with 100K+ views.
-    try:
-        high_performing = search_high_performing_x()
-        high_selected = high_performing[:HIGH_PERFORMANCE_MAX_ITEMS]
-        for item in high_selected:
+        posts = search_high_performing_x()
+        selected = posts[:HIGH_PERFORMANCE_MAX_ITEMS]
+        for item in selected:
+            tier = item.get("tier", "TRENDING")
             send_message(
-                "🔥 HIGH-PERFORMING CRYPTO POST\\n\\n"
-                f"NICHE: {item.get('niche', 'crypto')}\\n"
-                f"VIEWS: {item.get('views', 0):,}\\n"
-                f"FROM: @{item.get('author', 'unknown').lstrip('@')}\\n\\n"
-                f"{item.get('text', '')[:700]}\\n\\n"
+                f"🔥 {tier} CRYPTO POST\n\n"
+                f"NICHE: {item.get('niche', 'crypto')}\n"
+                f"VIEWS: {item.get('views', 0):,}\n"
+                f"FROM: @{item.get('author', 'unknown').lstrip('@')}\n\n"
+                f"{item.get('text', '')[:700]}\n\n"
                 f"🔗 {item.get('url', '')}",
                 dry_run=not args.telegram or args.test,
             )
-        print(f"high_performing_found={len(high_performing)}")
-        print(f"high_performing_sent={len(high_selected)}")
+        print(f"viral_trending_found={len(posts)}")
+        print(f"viral_trending_sent={len(selected)}")
     except Exception as exc:
-        print(f"high_performance_error={exc}")
-
-    print(f"discovered={len(items)}")
-    print(f"new_relevant={len(clean)}")
-    print(f"selected={len(selected)}")
-    print(f"sent={len(selected)}")
+        print(f"viral_trending_error={exc}")
 
 if __name__ == "__main__":
     main()
