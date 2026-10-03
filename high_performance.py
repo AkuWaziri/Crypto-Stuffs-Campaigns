@@ -106,6 +106,24 @@ def _search(tk, query, limit):
              "url":f"https://x.com/{users.get(tweet.get('author_id'),'unknown')}/status/{tweet['id']}"}
             for tweet in tweets.values()]
 
+def _detail_views(tk, tweet_id):
+    """Fetch one tweet raw GraphQL result without TweetKit transaction-id helper."""
+    qid = "aFvUsJm2c-oDkJV75blV6g"
+    url = f"{C.GQL_BASE}/{qid}/TweetResultByRestId"
+    headers = {"authorization": C.BEARER, "cookie": tk.cookie, "x-csrf-token": ct0_of(tk.cookie),
+               "x-twitter-active-user": "yes", "x-twitter-auth-type": "OAuth2Session",
+               "x-twitter-client-language": "en", "accept": "*/*", "origin": "https://x.com",
+               "referer": "https://x.com/home", "user-agent": C.UA}
+    variables = {"tweetId": str(tweet_id), "withCommunity": False,
+                 "includePromotedContent": False, "withVoice": False}
+    import json
+    params = {"variables": json.dumps(variables),
+              "features": json.dumps(C.USER_TWEETS_FEATURES),
+              "fieldToggles": json.dumps({"withArticleRichContentState": False})}
+    response = tk._session.get(url, params=params, headers=headers, timeout=tk.timeout)
+    response.raise_for_status()
+    return _tweet_views_by_id(response.json()).get(str(tweet_id))
+
 def _tweet_datetime(tweet):
     raw = tweet.get("created_at")
     try:
@@ -129,8 +147,7 @@ def search_high_performing_x():
             seen.add(tid); views=tweet.get("views")
             if views is None:
                 try:
-                    detail = tk.get_tweet(tid)
-                    views = _find_views(detail)
+                    views = _detail_views(tk, tid)
                 except Exception as exc:
                     print(f"high_performance_detail_error={tid}: {exc}")
             created = _tweet_datetime(tweet)
