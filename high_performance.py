@@ -127,9 +127,17 @@ def _detail_views(tk, tweet_id):
 def _tweet_datetime(tweet):
     raw = tweet.get("created_at")
     try:
-        if isinstance(raw, str): return datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        if isinstance(raw, (int, float)): return datetime.fromtimestamp(raw, timezone.utc)
-    except (TypeError, ValueError, OverflowError): pass
+        if isinstance(raw, str):
+            try:
+                return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            except ValueError:
+                return datetime.strptime(
+                    raw, "%a %b %d %H:%M:%S +0000 %Y"
+                ).replace(tzinfo=timezone.utc)
+        if isinstance(raw, (int, float)):
+            return datetime.fromtimestamp(raw, timezone.utc)
+    except (TypeError, ValueError, OverflowError):
+        pass
     return None
 
 def search_high_performing_x():
