@@ -1,10 +1,10 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import re
 from tweetkit_x import TweetKit
 from tweetkit_x import constants as C
 from tweetkit_x.cookie import ct0_of
 from tweetkit_x.client import _walk_timeline
-from config import X_AUTH_TOKEN, X_CT0, HIGH_PERFORMANCE_SEARCH_LIMIT, HIGH_PERFORMANCE_MIN_VIEWS
+from config import X_AUTH_TOKEN, X_CT0, HIGH_PERFORMANCE_SEARCH_LIMIT, HIGH_PERFORMANCE_MIN_VIEWS, HIGH_PERFORMANCE_MAX_ITEMS
 
 CRYPTO_NICHES = (
     "crypto AI", "crypto AI agents", "crypto hack", "crypto hacking",
@@ -12,6 +12,12 @@ CRYPTO_NICHES = (
     "crypto nodes", "crypto infrastructure", "crypto onchain findings",
     "crypto research", "crypto security", "crypto smart contracts",
     "crypto builders", "crypto protocols", "crypto wallets",
+    "crypto hackathon", "web3 hackathon", "crypto airdrop", "crypto incentives",
+    "crypto stablecoins", "crypto trading", "crypto markets", "crypto memecoin",
+    "crypto layer 2", "crypto scaling", "crypto DePIN", "crypto restaking",
+    "crypto ZK", "crypto privacy", "crypto account abstraction", "crypto interoperability",
+    "crypto bridges", "crypto startup", "crypto funding", "crypto launch",
+    "crypto ecosystem", "crypto onchain activity", "crypto discoveries", "crypto trends",
 )
 
 def _cookie_header():
@@ -100,11 +106,21 @@ def _search(tk, query, limit):
              "url":f"https://x.com/{users.get(tweet.get('author_id'),'unknown')}/status/{tweet['id']}"}
             for tweet in tweets.values()]
 
+def _tweet_datetime(tweet):
+    raw = tweet.get("created_at")
+    try:
+        if isinstance(raw, str): return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if isinstance(raw, (int, float)): return datetime.fromtimestamp(raw, timezone.utc)
+    except (TypeError, ValueError, OverflowError): pass
+    return None
+
 def search_high_performing_x():
     tk=TweetKit(cookie=_cookie_header(),timeout=30)
     found=[]; seen=set()
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    since = cutoff.strftime("%Y-%m-%d")
     for niche in CRYPTO_NICHES:
-        try: candidates=_search(tk,niche,HIGH_PERFORMANCE_SEARCH_LIMIT)
+        try: candidates=_search(tk, f"{niche} since:{since}", HIGH_PERFORMANCE_SEARCH_LIMIT)
         except Exception as exc:
             print(f"high_performance_search_error={niche}: {exc}"); continue
         for tweet in candidates:
@@ -117,9 +133,12 @@ def search_high_performing_x():
                     views = _find_views(detail)
                 except Exception as exc:
                     print(f"high_performance_detail_error={tid}: {exc}")
+            created = _tweet_datetime(tweet)
             if views is None or views < HIGH_PERFORMANCE_MIN_VIEWS: continue
+            if created is None or created < cutoff: continue
+            tier = "VIRAL" if views >= 50000 else "TRENDING"
             found.append({"id":tid,"author":tweet.get("author","unknown"),"text":" ".join(str(tweet.get("text","")).split()),
                           "url":tweet.get("url",""),"created_at":_iso(tweet.get("created_at")),
-                          "source":"x_high_performance","niche":niche,"views":views})
-    found.sort(key=lambda x:x["views"],reverse=True)
-    return found
+                          "source":"x_high_performance","niche":niche,"views":views,"tier":tier})
+    found.sort(key=lambda x: (x["views"], x.get("created_at") or ""), reverse=True)
+    return found[:HIGH_PERFORMANCE_MAX_ITEMS]
