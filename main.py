@@ -2,7 +2,7 @@ import argparse
 
 from config import HIGH_PERFORMANCE_MAX_ITEMS
 from telegram import send_message
-from high_performance import search_high_performing_x
+from high_performance import search_high_performing_x, mark_sent
 
 def main():
     parser = argparse.ArgumentParser(description="Crypto-Stuffs-Campaigns")
@@ -22,9 +22,10 @@ def main():
     try:
         posts = search_high_performing_x()
         selected = posts[:HIGH_PERFORMANCE_MAX_ITEMS]
+        sent_ids = []
         for item in selected:
             tier = item.get("tier", "TRENDING")
-            send_message(
+            delivered = send_message(
                 f"🔥 {tier} CRYPTO POST\n\n"
                 f"NICHE: {item.get('niche', 'crypto')}\n"
                 f"VIEWS: {item.get('views', 0):,}\n"
@@ -33,6 +34,10 @@ def main():
                 f"🔗 {item.get('url', '')}",
                 dry_run=not args.telegram or args.test,
             )
+            if delivered:
+                sent_ids.append(item.get("id"))
+        if sent_ids:
+            mark_sent(sent_ids)
         print(f"viral_trending_found={len(posts)}")
         print(f"viral_trending_sent={len(selected)}")
     except Exception as exc:
