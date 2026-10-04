@@ -1,10 +1,15 @@
 from datetime import datetime, timedelta, timezone
+import json
+import os
 import re
 from tweetkit_x import TweetKit
 from tweetkit_x import constants as C
 from tweetkit_x.cookie import ct0_of
 from tweetkit_x.client import _walk_timeline
 from config import X_AUTH_TOKEN, X_CT0, HIGH_PERFORMANCE_SEARCH_LIMIT, HIGH_PERFORMANCE_MIN_VIEWS, HIGH_PERFORMANCE_MAX_ITEMS
+
+SEEN_STATE_FILE = os.getenv("VIRAL_SEEN_STATE_FILE", ".viral_trending_seen.json")
+SEEN_STATE_LIMIT = 10000
 
 CRYPTO_NICHES = (
     "crypto AI", "crypto AI agents", "crypto hack", "crypto hacking",
@@ -140,9 +145,26 @@ def _tweet_datetime(tweet):
         pass
     return None
 
+def _load_seen_ids():
+    try:
+        with open(SEEN_STATE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return set(str(x) for x in data.get("sent_ids", []))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return set()
+
+def mark_sent(tweet_ids):
+    seen = _load_seen_ids()
+    seen.update(str(x) for x in tweet_ids if x)
+    data = {"sent_ids": list(seen)[-SEEN_STATE_LIMIT:]}
+    tmp = f"{SEEN_STATE_FILE}.tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    os.replace(tmp, SEEN_STATE_FILE)
+
 def search_high_performing_x():
     tk=TweetKit(cookie=_cookie_header(),timeout=30)
-    found=[]; seen=set()
+    found=[]; seen=set(); sent_ids=_load_seen_ids()
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
     since = cutoff.strftime("%Y-%m-%d")
     for niche in CRYPTO_NICHES:
@@ -151,7 +173,7 @@ def search_high_performing_x():
             print(f"high_performance_search_error={niche}: {exc}"); continue
         for tweet in candidates:
             tid=str(tweet.get("id",""))
-            if not tid or tid in seen: continue
+            if not tid or tid in seen or tid in sent_ids: continue
             seen.add(tid); views=tweet.get("views")
             if views is None:
                 try:
