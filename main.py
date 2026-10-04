@@ -17,7 +17,7 @@ def main():
     print("recency=last_7_days")
     print("threshold=20K_views")
     print("viral=50K+_views")
-    print("max_per_run=5")
+    print(f"max_per_run={HIGH_PERFORMANCE_MAX_ITEMS}")
 
     try:
         posts = search_high_performing_x()
