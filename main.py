@@ -1,4 +1,7 @@
 import argparse
+import os
+
+os.environ.setdefault("VIRAL_SEEN_STATE_FILE", ".campaign_state.json")
 
 from config import HIGH_PERFORMANCE_MAX_ITEMS
 from telegram import send_message
