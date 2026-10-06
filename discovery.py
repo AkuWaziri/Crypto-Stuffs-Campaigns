@@ -66,25 +66,6 @@ def _google_news(cutoff):
             print(f"alpha_web_error={query}: {exc}")
     return found
 
-def _github(cutoff):
-    found = []
-    headers = {**HEADERS, "Accept": "application/vnd.github+json"}
-    for query in ("web3 developer tools", "defi analytics", "solidity security tools", "crypto automation", "onchain analytics", "web3 AI agents", "blockchain hackathon"):
-        try:
-            response = requests.get("https://api.github.com/search/repositories",
-                params={"q": f"{query} pushed:>{cutoff.strftime('%Y-%m-%d')}", "sort": "updated", "order": "desc", "per_page": 10},
-                headers=headers, timeout=15)
-            response.raise_for_status()
-            for repo in response.json().get("items", []):
-                created = _date(repo.get("pushed_at") or repo.get("updated_at"))
-                title = repo.get("full_name", "")
-                description = repo.get("description", "") or ""
-                if created and created >= cutoff and USEFUL.search(f"{title} {description}"):
-                    found.append(_record("github", title, title, f"{description}. Stars: {repo.get('stargazers_count', 0)}", repo.get("html_url", ""), created))
-        except Exception as exc:
-            print(f"alpha_github_error={query}: {exc}")
-    return found
-
 def search_crypto_alpha():
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
     sent = _load_seen_ids()
