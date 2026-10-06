@@ -34,11 +34,14 @@ def main():
         alpha_posts = []
         print(f"crypto_alpha_error={exc}")
 
-    # Reserve slots for both viral posts and practical resources.
-    selected = viral_posts[:11] + alpha_posts[:10]
+    # Reserve up to 30 slots and keep both feed lanes represented.
+    # The larger pool gives more niches/categories a chance to appear each run.
+    viral_quota = min(20, HIGH_PERFORMANCE_MAX_ITEMS)
+    alpha_quota = min(10, max(0, HIGH_PERFORMANCE_MAX_ITEMS - viral_quota))
+    selected = viral_posts[:viral_quota] + alpha_posts[:alpha_quota]
     if len(selected) < HIGH_PERFORMANCE_MAX_ITEMS:
         used = {item.get("id") for item in selected}
-        leftovers = [item for item in viral_posts[11:] + alpha_posts[10:] if item.get("id") not in used]
+        leftovers = [item for item in viral_posts[viral_quota:] + alpha_posts[alpha_quota:] if item.get("id") not in used]
         selected.extend(leftovers[:HIGH_PERFORMANCE_MAX_ITEMS - len(selected)])
     selected = selected[:HIGH_PERFORMANCE_MAX_ITEMS]
 
