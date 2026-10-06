@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 import requests
 
 from config import USER_AGENT
-from high_performance import _load_seen_ids
+from high_performance import _load_seen_ids, _item_key
 
 MAX_DISCOVERY_ITEMS = 15
 HEADERS = {"User-Agent": USER_AGENT, "Accept": "application/rss+xml, application/json, */*"}
@@ -91,7 +91,7 @@ def search_crypto_alpha():
     candidates = _google_news(cutoff) + _github(cutoff)
     unique = {}
     for item in candidates:
-        if item["id"] in sent or not item["url"]:
+        if item["id"] in sent or _item_key(item) in sent or not item["url"]:
             continue
         unique[item["url"]] = item
     def rank(item):
