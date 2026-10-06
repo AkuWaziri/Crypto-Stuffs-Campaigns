@@ -42,7 +42,7 @@ def main():
         selected.extend(leftovers[:HIGH_PERFORMANCE_MAX_ITEMS - len(selected)])
     selected = selected[:HIGH_PERFORMANCE_MAX_ITEMS]
 
-    sent_ids = []
+    sent_items = []
     for item in selected:
         if item.get("tier") == "CRYPTO ALPHA":
             message = (
@@ -63,14 +63,14 @@ def main():
             )
         delivered = send_message(message, dry_run=not args.telegram or args.test)
         if delivered:
-            sent_ids.append(item.get("id"))
+            sent_items.append(item)
 
-    if sent_ids:
-        mark_sent(sent_ids)
+    if sent_items:
+        mark_sent(sent_items)
     print(f"viral_trending_found={len(viral_posts)}")
     print(f"crypto_alpha_found={len(alpha_posts)}")
     print(f"feed_selected={len(selected)}")
-    print(f"feed_sent={len(sent_ids)}")
+    print(f"feed_sent={len(sent_items)}")
 
 if __name__ == "__main__":
     main()
