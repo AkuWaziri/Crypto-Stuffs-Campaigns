@@ -6,6 +6,10 @@ on:
     # Run the campaign feed every 5 hours.
     - cron: "0 */5 * * *"
 
+concurrency:
+  group: crypto-stuffs-campaign-feed
+  cancel-in-progress: false
+
 jobs:
   feed:
     runs-on: ubuntu-latest
@@ -24,8 +28,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .campaign_state.json
-          key: crypto-stuffs-campaign-state-${{ github.run_id }}
+          key: crypto-stuffs-campaign-state-v2-${{ github.run_id }}
           restore-keys: |
+            crypto-stuffs-campaign-state-v2-
             crypto-stuffs-campaign-state-
       - uses: actions/setup-python@v5
         with:
