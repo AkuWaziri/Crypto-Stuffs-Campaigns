@@ -88,7 +88,7 @@ def _github(cutoff):
 def search_crypto_alpha():
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
     sent = _load_seen_ids()
-    candidates = _google_news(cutoff) + _github(cutoff)
+    candidates = _google_news(cutoff)
     unique = {}
     for item in candidates:
         if item["id"] in sent or _item_key(item) in sent or not item["url"]:
