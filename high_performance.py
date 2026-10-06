@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import os
 import re
+import hashlib
 from tweetkit_x import TweetKit
 from tweetkit_x import constants as C
 from tweetkit_x.cookie import ct0_of
@@ -145,18 +146,48 @@ def _tweet_datetime(tweet):
         pass
     return None
 
+def _item_key(item):
+    """Return a stable content key so reposts/URL variants cannot bypass deduplication."""
+    text = " ".join(str(item.get("text", "")).lower().split())
+    url = str(item.get("url", "")).strip().rstrip("/")
+    if text:
+        return "text:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return "url:" + hashlib.sha256(url.encode("utf-8")).hexdigest()
+
 def _load_seen_ids():
     try:
         with open(SEEN_STATE_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return set(str(x) for x in data.get("sent_ids", []))
+        ids = {str(x) for x in data.get("sent_ids", []) if x}
+        keys = {str(x) for x in data.get("sent_keys", []) if x}
+        return ids | keys
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return set()
 
-def mark_sent(tweet_ids):
-    seen = _load_seen_ids()
-    seen.update(str(x) for x in tweet_ids if x)
-    data = {"sent_ids": list(seen)[-SEEN_STATE_LIMIT:]}
+def mark_sent(items):
+    """Persist both source IDs and content fingerprints after Telegram accepts delivery."""
+    try:
+        with open(SEEN_STATE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        data = {}
+
+    ids = {str(x) for x in data.get("sent_ids", []) if x}
+    keys = {str(x) for x in data.get("sent_keys", []) if x}
+
+    for item in items:
+        if isinstance(item, dict):
+            item_id = item.get("id")
+            if item_id:
+                ids.add(str(item_id))
+            keys.add(_item_key(item))
+        elif item:
+            ids.add(str(item))
+
+    data = {
+        "sent_ids": list(ids)[-SEEN_STATE_LIMIT:],
+        "sent_keys": list(keys)[-SEEN_STATE_LIMIT:],
+    }
     tmp = f"{SEEN_STATE_FILE}.tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f)
@@ -164,7 +195,7 @@ def mark_sent(tweet_ids):
 
 def search_high_performing_x():
     tk=TweetKit(cookie=_cookie_header(),timeout=30)
-    found=[]; seen=set(); sent_ids=_load_seen_ids()
+    found=[]; seen=set(); sent_keys=_load_seen_ids()
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
     since = cutoff.strftime("%Y-%m-%d")
     for niche in CRYPTO_NICHES:
@@ -173,8 +204,17 @@ def search_high_performing_x():
             print(f"high_performance_search_error={niche}: {exc}"); continue
         for tweet in candidates:
             tid=str(tweet.get("id",""))
-            if not tid or tid in seen or tid in sent_ids: continue
-            seen.add(tid); views=tweet.get("views")
+            if not tid or tid in seen: continue
+            seen.add(tid)
+            candidate = {
+                "id": tid,
+                "author": tweet.get("author","unknown"),
+                "text": " ".join(str(tweet.get("text","")).split()),
+                "url": tweet.get("url",""),
+            }
+            if tid in sent_keys or _item_key(candidate) in sent_keys:
+                continue
+            views=tweet.get("views")
             if views is None:
                 try:
                     views = _detail_views(tk, tid)
