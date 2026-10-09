@@ -14,24 +14,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - name: Compile new project modules
-        run: python -m py_compile classifier.py config.py feed.py main.py state.py telegram.py web_sources.py x_scraper.py
-      - name: Run smoke tests
-        run: |
-          python - <<'PY'
-          from classifier import classify, is_relevant
-          from feed import format_item
-
-          item = {
-              "source": "x",
-              "author": "test",
-              "text": "New airdrop campaign is open. Join now and earn points.",
-              "url": "https://x.com/test/status/1",
-          }
-          result = classify(item)
-          assert is_relevant(result)
-          assert "airdrop" in result["types"]
-          assert "points" in result["types"]
-          assert "SIGNAL:" in format_item(result)
-          print("smoke_tests=passed")
-          PY
+      - name: Compile project modules
+        run: python -m py_compile main.py editorial.py discovery.py high_performance.py web_sources.py config.py telegram.py classifier.py
+      - name: Run tests
+        run: pytest -q

@@ -8,23 +8,35 @@ import requests
 from config import USER_AGENT
 from high_performance import _load_seen_ids, _item_key
 
-MAX_DISCOVERY_ITEMS = 15
+MAX_DISCOVERY_ITEMS = 30
 HEADERS = {"User-Agent": USER_AGENT, "Accept": "application/rss+xml, application/json, */*"}
+
 QUERIES = (
-    "crypto developer tools GitHub",
-    "DeFi guide tutorial checklist",
-    "Solidity security research tools",
-    "crypto automation workflow",
-    "onchain analytics dashboard",
-    "crypto AI agent framework",
-    "web3 hackathon builder resources",
-    "crypto API open source",
-    "blockchain infrastructure release",
-    "stablecoin payments developer",
-    "crypto research findings",
-    "Ethereum developer guide",
+    "crypto exploit security incident funds stolen",
+    "onchain investigation wallet cluster token flows",
+    "crypto protocol launch product release",
+    "crypto developer tools open source GitHub",
+    "DeFi stablecoin payments adoption",
+    "crypto airdrop allocation claim analysis",
+    "crypto AI agents infrastructure",
+    "crypto governance compensation user losses",
+    "memecoin launch wallet cluster rug pull analysis",
+    "blockchain research findings onchain data",
+    "bridge exploit attacker fund movements",
+    "crypto builders new feature testnet mainnet",
+    "crypto privacy coin unusual transactions",
+    "smart contract vulnerability postmortem",
+    "crypto exchange hack recovery victims",
 )
-USEFUL = re.compile(r"guide|tutorial|how to|step.by.step|checklist|tool|github|open.source|repo|workflow|automation|prompt|framework|sdk|api|dashboard|research|finding|security|hackathon|build|builder|launch|release|testnet|onchain|solidity|smart contract|defi|wallet|bridge|agent|infrastructure|payments|stablecoin|protocol|data|free", re.I)
+USEFUL = re.compile(
+    r"exploit|hack|security|wallet|on.?chain|transaction|fund flow|airdrop|allocation|"
+    r"claim|stablecoin|payment|agent|infrastructure|release|launch|tool|github|open.source|"
+    r"research|finding|postmortem|vulnerability|governance|adoption|bridge|memecoin|"
+    r"rug.pull|liquidity|protocol|builder|testnet|mainnet|privacy|exchange|victim|"
+    r"compensation|recovery|token|defi|smart.contract",
+    re.I,
+)
+
 
 def _date(value):
     if not value:
@@ -39,11 +51,14 @@ def _date(value):
         except (TypeError, ValueError, OverflowError):
             return None
 
+
 def _record(source, author, title, description, url, created):
     text = " ".join(f"{title} {description}".split())
     return {"id": f"{source}:{url}", "source": source, "author": author or source,
-            "text": text[:900], "url": url, "created_at": created.isoformat(),
-            "niche": "guides, tools and builds", "tier": "CRYPTO ALPHA", "views": 0}
+            "title": title, "text": text[:2200], "url": url,
+            "created_at": created.isoformat(), "niche": "crypto findings",
+            "tier": "FINDING", "views": 0}
+
 
 def _google_news(cutoff):
     found = []
@@ -59,31 +74,38 @@ def _google_news(cutoff):
                 created = _date(node.findtext("pubDate", ""))
                 desc_node = node.find("description")
                 description = "".join(desc_node.itertext()) if desc_node is not None else ""
-                text = f"{title} {description}"
-                if link and created and created >= cutoff and USEFUL.search(text):
-                    found.append(_record("web", "web discovery", title, description, link, created))
+                if link and created and created >= cutoff and USEFUL.search(f"{title} {description}"):
+                    found.append(_record("news", "news outlet", title, description, link, created))
         except Exception as exc:
-            print(f"alpha_web_error={query}: {exc}")
+            print(f"news_error={query}: {exc}")
     return found
+
 
 def _github(cutoff):
     found = []
     headers = {**HEADERS, "Accept": "application/vnd.github+json"}
-    for query in ("web3 developer tools", "defi analytics", "solidity security tools", "crypto automation", "onchain analytics", "web3 AI agents", "blockchain hackathon"):
+    for query in ("web3 developer tools", "defi analytics", "solidity security tools",
+                  "crypto automation", "onchain analytics", "web3 AI agents",
+                  "blockchain infrastructure", "crypto security research"):
         try:
-            response = requests.get("https://api.github.com/search/repositories",
-                params={"q": f"{query} pushed:>{cutoff.strftime('%Y-%m-%d')}", "sort": "updated", "order": "desc", "per_page": 10},
-                headers=headers, timeout=15)
+            response = requests.get(
+                "https://api.github.com/search/repositories",
+                params={"q": f"{query} pushed:>{cutoff.strftime('%Y-%m-%d')}",
+                        "sort": "updated", "order": "desc", "per_page": 10},
+                headers=headers, timeout=15,
+            )
             response.raise_for_status()
             for repo in response.json().get("items", []):
                 created = _date(repo.get("pushed_at") or repo.get("updated_at"))
                 title = repo.get("full_name", "")
                 description = repo.get("description", "") or ""
                 if created and created >= cutoff and USEFUL.search(f"{title} {description}"):
-                    found.append(_record("github", title, title, f"{description}. Stars: {repo.get('stargazers_count', 0)}", repo.get("html_url", ""), created))
+                    details = f"{description}. Stars: {repo.get('stargazers_count', 0)}"
+                    found.append(_record("github", title, title, details, repo.get("html_url", ""), created))
         except Exception as exc:
-            print(f"alpha_github_error={query}: {exc}")
+            print(f"github_error={query}: {exc}")
     return found
+
 
 def search_crypto_alpha():
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
@@ -96,9 +118,13 @@ def search_crypto_alpha():
         unique[item["url"]] = item
     def rank(item):
         text = item["text"].lower()
-        score = sum(2 for term in ("github", "open source", "tutorial", "checklist", "workflow", "tool", "guide", "research", "security", "dashboard", "api", "framework") if term in text)
+        score = sum(2 for term in (
+            "exploit", "security", "onchain", "wallet", "research", "finding", "tool",
+            "open source", "github", "stablecoin", "payments", "adoption", "airdrop",
+            "postmortem", "fund flow", "vulnerability", "compensation", "release",
+        ) if term in text)
         return (score, item["created_at"])
     results = sorted(unique.values(), key=rank, reverse=True)
-    print(f"crypto_alpha_candidates={len(candidates)}")
-    print(f"crypto_alpha_unique_new={len(results)}")
+    print(f"crypto_finding_candidates={len(candidates)}")
+    print(f"crypto_finding_unique_new={len(results)}")
     return results[:MAX_DISCOVERY_ITEMS]

@@ -1,12 +1,62 @@
 import argparse
 import os
+from datetime import datetime, timedelta, timezone
 
 os.environ.setdefault("VIRAL_SEEN_STATE_FILE", ".campaign_state.json")
 
-from config import HIGH_PERFORMANCE_MAX_ITEMS
-from telegram import send_message
-from high_performance import search_high_performing_x, mark_sent
+from config import HIGH_PERFORMANCE_MAX_ITEMS, LOOKBACK_HOURS
 from discovery import search_crypto_alpha
+from editorial import write_findings
+from high_performance import _item_key, _load_seen_ids, mark_sent, search_high_performing_x
+from telegram import send_message
+from web_sources import fetch_public_content
+
+
+def _is_recent(item, cutoff):
+    value = item.get("created_at")
+    if not value:
+        return True
+    try:
+        if isinstance(value, (int, float)):
+            created = datetime.fromtimestamp(value, timezone.utc)
+        else:
+            created = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+        return created >= cutoff
+    except (TypeError, ValueError, OverflowError, OSError):
+        # Unknown dates should not silently discard a potentially useful finding.
+        return True
+
+
+def _unique_findings(groups, limit):
+    seen = _load_seen_ids()
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=LOOKBACK_HOURS)
+    selected, local_ids, local_keys = [], set(), set()
+    for group in groups:
+        for raw in group:
+            item = dict(raw)
+            item_id = str(item.get("id") or item.get("url") or "").strip()
+            url = str(item.get("url") or "").strip()
+            text = " ".join(str(item.get("text") or "").split())
+            if not item_id or not url or not text or not _is_recent(item, cutoff):
+                continue
+            item["id"] = item_id
+            item["text"] = text
+            key = _item_key(item)
+            if item_id in seen or key in seen or item_id in local_ids or key in local_keys:
+                continue
+            local_ids.add(item_id)
+            local_keys.add(key)
+            selected.append(item)
+    selected.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)
+    return selected[:limit]
+
+
+def _format_finding(item, story):
+    # Deliver the finding itself, with its source attached; no editorial metadata.
+    return f"{story.strip()}\n\nSource: {item.get('url', '')}"
+
 
 def main():
     parser = argparse.ArgumentParser(description="Crypto-Stuffs-Campaigns")
@@ -16,64 +66,51 @@ def main():
 
     print("CRYPTO-STUFFS")
     print("mode=read-only")
-    print("execution=disabled")
-    print("feature=viral_trending_plus_practical_crypto_alpha")
-    print("recency=last_7_days")
-    print("viral_threshold=20K_views")
-    print("viral=50K+_views")
+    print("feed=crypto_findings")
+    print("sources=x,news,github,reddit,medium,telegram,bluesky,farcaster")
+    print("style=human,evidence-led,conversational")
+    print(f"lookback_hours={LOOKBACK_HOURS}")
     print(f"max_per_run={HIGH_PERFORMANCE_MAX_ITEMS}")
 
-    try:
-        viral_posts = search_high_performing_x()
-    except Exception as exc:
-        viral_posts = []
-        print(f"viral_trending_error={exc}")
-    try:
-        alpha_posts = search_crypto_alpha()
-    except Exception as exc:
-        alpha_posts = []
-        print(f"crypto_alpha_error={exc}")
+    groups = []
+    for label, fetcher in (
+        ("x", search_high_performing_x),
+        ("news_and_builds", search_crypto_alpha),
+        ("public_social", fetch_public_content),
+    ):
+        try:
+            found = fetcher()
+            print(f"source_lane={label} candidates={len(found)}")
+            groups.append(found)
+        except Exception as exc:
+            print(f"source_lane_error={label}: {exc}")
+            groups.append([])
 
-    # Reserve up to 30 slots and keep both feed lanes represented.
-    # The larger pool gives more niches/categories a chance to appear each run.
-    viral_quota = min(20, HIGH_PERFORMANCE_MAX_ITEMS)
-    alpha_quota = min(10, max(0, HIGH_PERFORMANCE_MAX_ITEMS - viral_quota))
-    selected = viral_posts[:viral_quota] + alpha_posts[:alpha_quota]
-    if len(selected) < HIGH_PERFORMANCE_MAX_ITEMS:
-        used = {item.get("id") for item in selected}
-        leftovers = [item for item in viral_posts[viral_quota:] + alpha_posts[alpha_quota:] if item.get("id") not in used]
-        selected.extend(leftovers[:HIGH_PERFORMANCE_MAX_ITEMS - len(selected)])
-    selected = selected[:HIGH_PERFORMANCE_MAX_ITEMS]
+    selected = _unique_findings(groups, HIGH_PERFORMANCE_MAX_ITEMS)
+    if not selected:
+        print("findings_selected=0")
+        print("findings_sent=0")
+        return
 
-    sent_items = []
+    stories = write_findings(selected)
+    delivered_items = []
     for item in selected:
-        if item.get("tier") == "CRYPTO ALPHA":
-            message = (
-                "🧠 CRYPTO ALPHA: TOOLS, GUIDES & BUILDS\n\n"
-                f"SOURCE: {item.get('source', 'web').upper()}\n"
-                f"TOPIC: {item.get('niche', 'crypto resources')}\n\n"
-                f"{item.get('text', '')[:850]}\n\n"
-                f"🔗 {item.get('url', '')}"
-            )
-        else:
-            message = (
-                f"🔥 {item.get('tier', 'TRENDING')} CRYPTO POST\n\n"
-                f"NICHE: {item.get('niche', 'crypto')}\n"
-                f"VIEWS: {item.get('views', 0):,}\n"
-                f"FROM: @{item.get('author', 'unknown').lstrip('@')}\n\n"
-                f"{item.get('text', '')[:700]}\n\n"
-                f"🔗 {item.get('url', '')}"
-            )
-        delivered = send_message(message, dry_run=not args.telegram or args.test)
+        story = stories.get(str(item["id"])) or item["text"]
+        message = _format_finding(item, story)
+        try:
+            delivered = send_message(message, dry_run=not args.telegram or args.test)
+        except Exception as exc:
+            print(f"delivery_error={item['id']}: {exc}")
+            continue
         if delivered:
-            sent_items.append(item)
+            delivered_items.append(item)
 
-    if sent_items:
-        mark_sent(sent_items)
-    print(f"viral_trending_found={len(viral_posts)}")
-    print(f"crypto_alpha_found={len(alpha_posts)}")
-    print(f"feed_selected={len(selected)}")
-    print(f"feed_sent={len(sent_items)}")
+    if delivered_items:
+        mark_sent(delivered_items)
+    print(f"findings_selected={len(selected)}")
+    print(f"findings_written={sum(1 for item in selected if stories.get(str(item['id'])))}")
+    print(f"findings_sent={len(delivered_items)}")
+
 
 if __name__ == "__main__":
     main()

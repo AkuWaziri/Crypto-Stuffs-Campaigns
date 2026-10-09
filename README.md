@@ -1,48 +1,53 @@
 # Crypto-Stuffs-Campaigns
 
-Crypto-content discovery feed for Telegram.
+An automated crypto intelligence feed for Telegram. It searches public news and social sources, identifies concrete developments and unusual patterns, then delivers concise, human-sounding findings with links to the underlying source.
 
-## What it watches
+## What it looks for
 
-The feed is now focused on one category only:
+- Exploits, security incidents, wallet clusters, suspicious fund flows and on-chain investigations
+- Protocol updates, builders, new tools, open-source projects, infrastructure and technical discoveries
+- DeFi, stablecoins, payments, AI agents, adoption, airdrops, rewards, launches and governance
+- Market anomalies and unexpected connections between crypto events
+- Costly mistakes, user losses, compensation decisions and accountability stories
 
-- **Funny/creative crypto content** — satire, parody, irony, jokes, memes, comics, humorous observations, funny crypto situations, shitposts and other genuinely humorous/creative crypto content.
+## Writing standard
 
-All other content categories are sunset.
+The feed should sound like a knowledgeable crypto-native person who found something interesting, checked the details and wants to explain it naturally. Lead with the finding, preserve concrete numbers and timelines, explain the sequence, and use irony or sarcasm only when it fits. Avoid generic news intros, corporate summaries, forced slang, engagement bait and repetitive templates. Never invent wallet attribution, motives, numbers or causal links. Keep allegations attributed and uncertainty clear.
+
+Each Telegram message contains the finished finding and a source link. It does not send research assignments, writing suggestions or editorial recommendations.
 
 ## Sources
 
-- X/Twitter
-- Reddit
-- Medium
-- Public Telegram channels
-- Bluesky
-- Farcaster
+- X search for high-performing crypto posts
+- Google News RSS
+- GitHub repository search
+- Medium RSS
+- Reddit public search
+- Bluesky public search
+- Farcaster public search
+- Optional public Telegram channels configured in `TELEGRAM_CHANNELS`
 
-## Filtering
+Source availability varies; Reddit and other platforms may rate-limit or block automated requests.
 
-Every item must be crypto-related and match the **Funny/creative crypto content** category.
+## Schedule and delivery
 
-There is no quality score, signal score, ranking, campaign score, or campaign/reward classification.
+GitHub Actions runs every 5 hours and supports manual runs. The feed sends up to 30 new findings per run and checks a 7-day lookback. Deduplication state persists across runs, and items are marked as sent only after Telegram accepts delivery.
 
-## Current mode
+## Model-assisted writing
 
-Read-only. No wallet connections, trading, token creation or transaction execution.
+For the full human-tone rewrite, configure these GitHub Actions repository secrets/variables:
 
-## X scraper
+- Secret `OPENAI_API_KEY`: API key for an OpenAI-compatible chat-completions endpoint
+- Optional variable `OPENAI_BASE_URL`: defaults to `https://api.openai.com/v1`
+- Optional variable `OPENAI_MODEL`: defaults to `gpt-4o-mini`
 
-X uses an authenticated web session supplied through GitHub Secrets.
+Without an API key, the bot remains operational and forwards source text with its source link, but cannot produce the model-assisted rewrite.
 
-Required secrets:
-- TELEGRAM_BOT_TOKEN
-- TELEGRAM_CHAT_ID
-- X_AUTH_TOKEN
-- X_CT0
+## Required GitHub Actions secrets
 
-The GitHub Actions feed runs every 3 hours.
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+- `X_AUTH_TOKEN`
+- `X_CT0`
 
-## Separate high-performance crypto lane
-
-A separate discovery lane also searches X for high-performing crypto posts across niches including AI, AI agents, hacking/security, payments, DeFi, development, NFTs, nodes, infrastructure, on-chain findings, research, smart contracts, builders, protocols and wallets.
-
-Only posts verified at **100,000+ views** are eligible for this lane. They are sent separately from the funny/creative crypto feed and are not required to match the funny/creative category.
+Read-only discovery only. No wallet connections, trading or transaction execution.
