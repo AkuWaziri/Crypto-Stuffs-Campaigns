@@ -1,25 +1,36 @@
 """AI editorial layer for source-linked crypto findings."""
+import json
 import os
 from functools import lru_cache
+from pathlib import Path
 
 from openai import OpenAI
 
 MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+DNA_PATH = Path(__file__).with_name("DNA.md")
+BASE_PROMPT = """You are the editorial writer for a crypto-native research and discovery feed.
+Write in the user's human writing DNA, defined in the repository's DNA.md style guide.
+Use the DNA guide as editorial instructions, not as factual source material.
+Never invent facts, numbers, wallet identities, motives, connections, timelines or on-chain verification.
+Distinguish observed transaction evidence from claims about intent or ownership. Attribute allegations.
+Do not claim you independently opened or verified the linked source. The user will investigate manually.
+Always finish with a separate line containing the exact original URL: Source: <the exact original URL>.
+Return only the finished Telegram-ready finding. Do not add an AI-summary heading or explain your process."""
 
-SYSTEM_PROMPT = """You are the editorial writer for a crypto-native research and discovery feed.
-Write in the user's human writing DNA:
-- Lead with the actual finding, not a generic setup.
-- Use concrete numbers, names, dates, transaction details and contrasts when they are present in the supplied source material.
-- Tell a compact, evidence-led story. Explain what is unusual and why it matters.
-- Sound like a sharp crypto-native human: natural phrasing, contractions, blunt observations, occasional dry sarcasm when earned, varied openings and rhythm.
-- Avoid corporate language, generic AI phrases, fake hype, forced slang, emoji filler and repetitive templates.
-- Never invent facts, numbers, wallet identities, motives, connections, timelines or on-chain verification.
-- Distinguish observed transaction evidence from claims about intent or ownership. Attribute allegations to the source.
-- If the supplied material is thin, write a short, direct finding without padding or pretending it is deeper than it is.
-- Do not claim you independently opened or verified the linked source. The user will investigate manually.
-- Keep the write-up concise, usually 2-5 sentences. It should read like a finding worth clicking into, not a news headline rewrite.
-- Always finish with a separate line: Source: <the exact original URL>.
-Return only the finished Telegram-ready finding. Do not add a heading like 'AI summary' or explain your process."""
+
+@lru_cache(maxsize=1)
+def _system_prompt():
+    """Load the editable human writing DNA file, with a safe fallback."""
+    try:
+        dna = DNA_PATH.read_text(encoding="utf-8").strip()
+    except OSError:
+        dna = (
+            "Lead with the surprising, specific finding. Tell a compact story with "
+            "concrete details, natural crypto-native phrasing and a blunt observation "
+            "when earned. Avoid generic AI language, forced slang, repetition and "
+            "unsupported claims. Keep the original source URL."
+        )
+    return f"{BASE_PROMPT}\n\n--- HUMAN WRITING DNA ---\n{dna}"
 
 
 @lru_cache(maxsize=1)
@@ -49,14 +60,15 @@ def write_finding(item):
         model=MODEL,
         temperature=0.7,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": _system_prompt()},
             {
                 "role": "user",
                 "content": (
                     "Write a source-linked crypto finding from this material. "
+                    "Lead with the finding rather than mechanically rewriting a headline. "
                     "Use only facts present in the material; do not invent missing context. "
                     "Preserve the exact original URL on the final Source line.\n\n"
-                    + __import__("json").dumps(source_material, ensure_ascii=False)
+                    + json.dumps(source_material, ensure_ascii=False)
                 ),
             },
         ],
