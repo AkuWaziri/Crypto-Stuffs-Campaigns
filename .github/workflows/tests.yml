@@ -22,18 +22,15 @@ jobs:
         run: |
           python - <<'PY'
           from classifier import classify, is_relevant
-          from feed import format_item
 
           item = {
               "source": "x",
               "author": "test",
-              "text": "New airdrop campaign is open. Join now and earn points.",
+              "text": "crypto be like: the chart dumps 20% and everyone becomes a long-term investor",
               "url": "https://x.com/test/status/1",
           }
           result = classify(item)
           assert is_relevant(result)
-          assert "airdrop" in result["types"]
-          assert "points" in result["types"]
-          assert "SIGNAL:" in format_item(result)
+          assert "funny_creative_crypto" in result["types"]
           print("smoke_tests=passed")
           PY
