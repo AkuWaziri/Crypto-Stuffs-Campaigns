@@ -14,24 +14,26 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - name: Compile new project modules
-        run: python -m py_compile classifier.py config.py feed.py main.py state.py telegram.py web_sources.py x_scraper.py
+      - name: Compile project modules
+        run: python -m py_compile classifier.py config.py discovery.py high_performance.py main.py telegram.py web_sources.py
       - name: Run smoke tests
         run: |
           python - <<'PY'
           from classifier import classify, is_relevant
-          from feed import format_item
+          from main import _format_finding
 
           item = {
+              "id": "x:https://x.com/test/status/1",
               "source": "x",
               "author": "test",
-              "text": "New airdrop campaign is open. Join now and earn points.",
+              "text": "On-chain investigators traced suspicious wallet movements after an exploit.",
               "url": "https://x.com/test/status/1",
           }
           result = classify(item)
           assert is_relevant(result)
-          assert "airdrop" in result["types"]
-          assert "points" in result["types"]
-          assert "SIGNAL:" in format_item(result)
+          assert "security" in result["types"] or "research" in result["types"]
+          message = _format_finding(item)
+          assert message.startswith(item["text"])
+          assert "Source: https://x.com/test/status/1" in message
           print("smoke_tests=passed")
           PY
