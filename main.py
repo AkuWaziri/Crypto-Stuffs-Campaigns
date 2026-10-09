@@ -7,7 +7,7 @@ from config import HIGH_PERFORMANCE_MAX_ITEMS
 from telegram import send_message
 from high_performance import search_high_performing_x, mark_sent
 from discovery import search_crypto_alpha
-from editorial import build_editorial_digest
+from editorial import build_editorial_digest, build_post_recommendation
 
 def main():
     parser = argparse.ArgumentParser(description="Crypto-Stuffs-Campaigns")
@@ -65,15 +65,20 @@ def main():
                 f"{item.get('text', '')[:700]}\n\n"
                 f"🔗 {item.get('url', '')}"
             )
-        delivered = send_message(message, dry_run=not args.telegram or args.test)
+
+        # Attach a content recommendation to every individual feed post, not only the top digest picks.
+        recommendation = build_post_recommendation(item)
+        if recommendation:
+            message += "\n\n" + recommendation
+
+        delivered = send_message(message[:3900], dry_run=not args.telegram or args.test)
         if delivered:
             sent_items.append(item)
 
     if sent_items:
         mark_sent(sent_items)
 
-    # Editorial layer: summarize a few of the strongest findings into research angles.
-    # These are prompts for human investigation, not claims or auto-published posts.
+    # Keep the deeper editorial digest for the strongest findings as a separate research layer.
     if sent_items:
         digest = build_editorial_digest(sent_items, limit=3)
         if digest:

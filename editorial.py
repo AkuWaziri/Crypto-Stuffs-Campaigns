@@ -132,6 +132,48 @@ def _tool_idea(item):
 def _editorial_angles(item):
     return ANGLE_PLAYBOOK.get(_topic(item), ANGLE_PLAYBOOK["Crypto research"])
 
+def build_post_recommendation(item):
+    """Return a compact, topic-specific content recommendation for one feed item."""
+    if not isinstance(item, dict) or not item.get("text") or not item.get("url"):
+        return ""
+    topic = _topic(item)
+    mechanism, second_order, builder, draft = _editorial_angles(item)
+    title = _title(item)
+    if topic == "Security":
+        angle = "Explain the root cause and the exact check that could have caught it; compare only systems with evidence of the same risk."
+        hook = "The important part of this security story is the failure path, not just the loss."
+    elif topic == "Stablecoins & payments":
+        angle = "Turn the announcement into a user-level comparison: total fees, settlement time, supported route, and failure cases."
+        hook = "A payment feature is only useful if the full route gets cheaper, faster, or more reliable."
+    elif topic == "DeFi & markets":
+        angle = "Interrogate the metric: organic demand or incentives, liquidity depth, who earns, and who absorbs downside."
+        hook = "The headline metric is interesting. The question is what is actually driving it."
+    elif topic == "AI & agents":
+        angle = "Show one end-to-end task, the permissions required, cost/time, and where the workflow still breaks."
+        hook = "Ignore the agent label. What can it complete reliably without a human stepping in?"
+    elif topic == "Developer tools":
+        angle = "Build a tiny demo and compare the setup or workflow against the current alternative; show the rough edges too."
+        hook = "Don't review the launch post. Test whether this removes a real step for builders."
+    elif topic == "On-chain research":
+        angle = "Trace a transaction, event, or contract call; state what the data proves and what it cannot prove yet."
+        hook = "The useful signal is in the transaction trail, but it is easy to overread what it means."
+    elif topic == "Infrastructure":
+        angle = "Benchmark one realistic workload against a baseline and disclose configuration, trade-offs, and failure cases."
+        hook = "This infrastructure claim matters if it changes a real workload, not just a benchmark headline."
+    elif topic == "Funding & opportunities":
+        angle = "Make a verified opportunity breakdown: eligibility, deadline, deliverables, costs, and official source."
+        hook = "Before chasing this opportunity, check what qualifies and what it actually rewards."
+    else:
+        angle = "Identify the concrete mechanism, test it against a primary source, then explain the implication for one specific user group."
+        hook = "The detail worth investigating is what changed in practice, not how the announcement describes it."
+    return (
+        f"✍️ CONTENT RECOMMENDATION | {topic}\n"
+        f"Angle: {angle}\n"
+        f"Hook to develop: “{hook}”\n"
+        f"Make it yours: use “{title[:120]}” as the lead, add one verified detail from the source, "
+        "your interpretation, and one caveat or practical takeaway. Do not publish the hook as a factual claim until verified."
+    )
+
 def _research_prompt(item):
     topic = _topic(item)
     source = str(item.get("source", "unknown")).upper()
@@ -182,3 +224,4 @@ def build_editorial_digest(items, limit=3):
     if len(digest) > 3900:
         return build_editorial_digest(chosen[:1], limit=1)
     return digest
+"

@@ -1,4 +1,4 @@
-from editorial import build_editorial_digest, _score, _topic, _editorial_angles
+from editorial import build_editorial_digest, build_post_recommendation, _score, _topic, _editorial_angles
 
 def test_digest_includes_source_and_human_review():
     item = {
@@ -41,3 +41,16 @@ def test_angles_are_topic_specific():
     payments = _editorial_angles({"text": "stablecoin payments"})
     assert "failure path" in security[0]
     assert "full path" in payments[0]
+
+def test_each_feed_item_gets_a_specific_content_recommendation():
+    security = build_post_recommendation({"text": "Smart contract exploit exposes a permission bug", "url": "https://example.com/security"})
+    payments = build_post_recommendation({"text": "New stablecoin payment route cuts fees", "url": "https://example.com/payments"})
+    assert "CONTENT RECOMMENDATION" in security
+    assert "failure path" in security.lower()
+    assert "total fees" in payments.lower()
+    assert "Hook to develop" in payments
+    assert build_post_recommendation({"text": "missing source"}) == ""
+
+def test_content_recommendation_is_compact():
+    item = {"text": "New stablecoin payment route released " + ("details " * 100), "url": "https://example.com", "source": "web"}
+    assert len(build_post_recommendation(item)) < 1000

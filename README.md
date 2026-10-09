@@ -12,6 +12,15 @@ A read-only crypto intelligence feed and editorial research assistant delivered 
 
 The scheduled run targets up to 30 feed items: up to 20 viral/trending posts and 10 practical discoveries, filling unused slots from remaining candidates where available. Thirty is a cap, not a guaranteed count.
 
+## Per-post content recommendations
+
+**Every individual feed message** now includes a topic-specific content recommendation, not just the separate editorial digest. Each recommendation includes:
+- a differentiated angle for the finding's topic;
+- a suggested opening hook to develop in your own voice;
+- guidance on what to verify and how to add an interpretation, caveat, or practical takeaway.
+
+Recommendations vary for security, stablecoin payments, DeFi, AI agents, developer tools, on-chain research, infrastructure, funding, and other crypto findings. They are writing direction, not claims that have already been verified. Use the linked source and, where possible, primary evidence before posting.
+
 ## Editorial intelligence
 
 After successfully delivering new feed items, the bot sends a compact **Editorial Intelligence** digest for up to three strong leads. The digest gives each selected finding:
@@ -20,7 +29,7 @@ After successfully delivering new feed items, the bot sends a compact **Editoria
 - a **post scaffold** with placeholders for verified facts, interpretation, caveat, and test;
 - a **Build Radar** mini-tool concept to validate against real user needs.
 
-The angles are topic-specific (security, stablecoin payments, DeFi, AI agents, developer tools, on-chain research, infrastructure, and opportunities). They are rule-based writing scaffolds, not a substitute for reading primary sources or independently verifying claims. The bot does not claim a hypothesis is fact and does not auto-publish social posts.
+The angles are rule-based writing scaffolds, not a substitute for reading primary sources or independently verifying claims. The bot does not auto-publish social posts.
 
 ## Deduplication and delivery
 
