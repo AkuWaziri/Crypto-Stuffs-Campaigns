@@ -132,46 +132,102 @@ def _tool_idea(item):
 def _editorial_angles(item):
     return ANGLE_PLAYBOOK.get(_topic(item), ANGLE_PLAYBOOK["Crypto research"])
 
+def _specific_signal(text):
+    """Extract visible evidence cues from the actual post without inventing facts."""
+    text = _normal(text)
+    numbers = re.findall(r"(?<![A-Za-z])(?:\\$|\\b)?\\d[\\d,.]*(?:\\s?%|\\s?(?:k|m|b)\\b|\\s?(?:days?|hours?|users?|wallets?|transactions?|validators?|TPS)\\b)?", text, flags=re.I)
+    numbers = [x.strip() for x in numbers if x.strip()][:4]
+    quoted = re.findall(r"[“\"]([^”\"]{8,90})[”\"]", text)
+    if quoted:
+        return "the specific claim “" + quoted[0] + "”"
+    if numbers:
+        return "the reported figure(s) " + ", ".join(numbers)
+    phrases = re.findall(r"[A-Za-z0-9][A-Za-z0-9+.#/_-]*(?:\\s+[A-Za-z0-9][A-Za-z0-9+.#/_-]*){1,5}", text)
+    for phrase in phrases:
+        if len(phrase) > 12 and any(ch.isalpha() for ch in phrase):
+            return "the claim about “" + phrase[:85].strip() + "”"
+    return "the specific claim in this post"
+
 def build_post_recommendation(item):
-    """Return a compact, topic-specific content recommendation for one feed item."""
+    """Recommend research-led analysis tied to the actual post, not a generic topic template."""
     if not isinstance(item, dict) or not item.get("text") or not item.get("url"):
         return ""
     topic = _topic(item)
-    mechanism, second_order, builder, draft = _editorial_angles(item)
+    text = _normal(item.get("text", ""))
     title = _title(item)
+    signal = _specific_signal(text)
+    low = text.lower()
+
     if topic == "Security":
-        angle = "Explain the root cause and the exact check that could have caught it; compare only systems with evidence of the same risk."
-        hook = "The important part of this security story is the failure path, not just the loss."
+        investigation = "Trace the affected contract/function and the exact permission or validation failure. Check the incident report, transaction trace, patch, and whether the same pattern exists elsewhere."
+        evidence = "root cause, affected component, exploit/patch timestamps, and the transaction or code line proving the mechanism"
+        thesis = f"Does {signal} reveal a reusable failure pattern, or is it specific to this implementation?"
+        payoff = "show the failure path and one concrete check developers can add"
     elif topic == "Stablecoins & payments":
-        angle = "Turn the announcement into a user-level comparison: total fees, settlement time, supported route, and failure cases."
-        hook = "A payment feature is only useful if the full route gets cheaper, faster, or more reliable."
+        investigation = "Map the full user route, then compare network/gas costs, conversion or bridge fees, settlement time, supported regions, and failed transfers against the closest alternative."
+        evidence = "route-by-route total cost, settlement time, supported chains/regions, and a timestamped comparison baseline"
+        thesis = f"Does {signal} improve the user's end-to-end payment, or only one step in the route?"
+        payoff = "publish a real route comparison and state which user benefits under which conditions"
     elif topic == "DeFi & markets":
-        angle = "Interrogate the metric: organic demand or incentives, liquidity depth, who earns, and who absorbs downside."
-        hook = "The headline metric is interesting. The question is what is actually driving it."
+        investigation = "Check protocol dashboards/on-chain data over a defined time window. Compare the headline metric with liquidity depth, utilization, fees, incentives, and concentration."
+        evidence = "time-series metrics, incentive emissions, liquidity/utilization, and wallet or market concentration where available"
+        thesis = f"What is driving {signal}: durable usage, temporary incentives, or a change in measurement?"
+        payoff = "show the metric beside its denominator/baseline and explain what it does not prove"
     elif topic == "AI & agents":
-        angle = "Show one end-to-end task, the permissions required, cost/time, and where the workflow still breaks."
-        hook = "Ignore the agent label. What can it complete reliably without a human stepping in?"
+        investigation = "Reproduce the specific workflow. Record tools and permissions, successful completion rate, latency, cost, and where a human must intervene."
+        evidence = "a reproducible task, run count, success/failure rate, latency, cost, and permission requirements"
+        thesis = f"Can {signal} survive a practical end-to-end test beyond the demo?"
+        payoff = "report a small test with setup steps, measured results, and failure cases"
     elif topic == "Developer tools":
-        angle = "Build a tiny demo and compare the setup or workflow against the current alternative; show the rough edges too."
-        hook = "Don't review the launch post. Test whether this removes a real step for builders."
+        investigation = "Open the repository/docs and run the smallest working example. Compare setup time, code required, dependencies, errors, and maintenance activity with the existing approach."
+        evidence = "repository/docs, recent meaningful commits, setup steps, minimal example, and a baseline comparison"
+        thesis = f"What bottleneck does {signal} remove, and what new dependency or limitation does it introduce?"
+        payoff = "show the smallest reproducible demo and rough edges, not a paraphrase of the launch"
     elif topic == "On-chain research":
-        angle = "Trace a transaction, event, or contract call; state what the data proves and what it cannot prove yet."
-        hook = "The useful signal is in the transaction trail, but it is easy to overread what it means."
+        investigation = "Follow the transaction/event to its contract and block timestamp. Compare the same behavior across addresses or a defined time window; separate observed behavior from inferred intent."
+        evidence = "transaction hashes, contract events, block/time window, comparison addresses, and attribution limits"
+        thesis = f"What does the on-chain evidence behind {signal} prove, and what is still interpretation?"
+        payoff = "include query/transaction links and one insight another reader can independently reproduce"
     elif topic == "Infrastructure":
-        angle = "Benchmark one realistic workload against a baseline and disclose configuration, trade-offs, and failure cases."
-        hook = "This infrastructure claim matters if it changes a real workload, not just a benchmark headline."
+        investigation = "Identify the workload and baseline behind the claim. Compare latency, cost, throughput, reliability, and configuration under equivalent conditions."
+        evidence = "benchmark configuration, workload, baseline, latency/cost/throughput, and failure conditions"
+        thesis = f"Under which workload does {signal} hold, and what trade-off is missing from the headline?"
+        payoff = "publish a reproducible comparison with configuration and trade-offs"
     elif topic == "Funding & opportunities":
-        angle = "Make a verified opportunity breakdown: eligibility, deadline, deliverables, costs, and official source."
-        hook = "Before chasing this opportunity, check what qualifies and what it actually rewards."
+        investigation = "Verify the official program page/docs. Check eligibility, deadlines, deliverables, reward mechanics, region restrictions, costs, and wallet permissions."
+        evidence = "official announcement, eligibility rules, exact deadline, deliverables, costs, and reward terms"
+        thesis = f"Who is {signal} useful for after accounting for effort, eligibility, and risk?"
+        payoff = "create a verified breakdown separating confirmed requirements from speculation"
     else:
-        angle = "Identify the concrete mechanism, test it against a primary source, then explain the implication for one specific user group."
-        hook = "The detail worth investigating is what changed in practice, not how the announcement describes it."
+        investigation = "Open the original source and find the primary artifact behind the claim: docs, release notes, repository diff, governance proposal, dataset, or transaction. Compare it with a baseline."
+        evidence = "primary source, timestamp, comparison set/baseline, and a clear limitation"
+        thesis = f"What changes in practice if {signal} is accurate, and what evidence would disprove that interpretation?"
+        payoff = "show the evidence, your interpretation, one counterpoint, and the practical consequence"
+
+    if any(word in low for word in ("launch", "released", "release", "announced", "introducing", "shipping")):
+        framing = "Treat the announcement as a lead, not proof of impact; test what is usable today versus what is promised."
+    elif any(word in low for word in ("data", "users", "volume", "growth", "revenue", "transactions", "activity", "increased", "decreased", "record")):
+        framing = "Interrogate the metric: define its time window and denominator, then compare it with a baseline before inferring causation."
+    elif any(word in low for word in ("exploit", "hack", "vulnerability", "attack", "drained", "stolen")):
+        framing = "Reconstruct the sequence of events and distinguish the confirmed root cause from early speculation."
+    elif any(word in low for word in ("guide", "tutorial", "how to", "github", "repository", "repo", "sdk", "api")):
+        framing = "Reproduce the workflow yourself and document what works, what breaks, and who benefits."
+    else:
+        framing = "Start with the original evidence and test the strongest implication rather than repeating the post's conclusion"
+
+    views = item.get("views")
+    performance = f" | {views:,} views" if isinstance(views, (int, float)) and views > 0 else ""
+    source_label = "verified X account" if item.get("source") == "x_high_performance" and item.get("verified") else str(item.get("source", "source")).upper()
     return (
-        f"✍️ CONTENT RECOMMENDATION | {topic}\n"
-        f"Angle: {angle}\n"
-        f"Hook to develop: “{hook}”\n"
-        f"Make it yours: use “{title[:120]}” as the lead, add one verified detail from the source, "
-        "your interpretation, and one caveat or practical takeaway. Do not publish the hook as a factual claim until verified."
+        f"🔎 RESEARCH-LED CONTENT IDEA | {topic}\\n"
+        f"Source signal: {title[:190]}{performance}\\n"
+        f"Your analysis question: {thesis}\\n"
+        f"Investigate: {investigation}\\n"
+        f"Evidence to collect: {evidence}.\\n"
+        f"Angle: {framing}\\n"
+        f"Write it as: finding → evidence/comparison → your interpretation → caveat → practical implication.\\n"
+        f"Content payoff: {payoff}.\\n"
+        f"Original source: {item.get('url', '')}"
     )
 
 def _research_prompt(item):

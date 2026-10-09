@@ -5,7 +5,7 @@ A read-only crypto intelligence feed and editorial research assistant delivered 
 ## Current feed lanes
 
 1. **Viral and trending crypto posts from X** across AI and agents, DeFi, stablecoins, payments, security, infrastructure, smart contracts, airdrops, hackathons, on-chain activity, builders, protocols and other crypto niches.
-   - Looks back 7 days.
+   - Only posts from accounts with an explicit X verification/checkmark flag in the response are eligible; unverified accounts are excluded.\n   - Looks back 7 days.
    - Trending threshold: 20,000+ views by default.
    - Viral tier: 50,000+ views.
 2. **Practical crypto discoveries** from Google News RSS and GitHub repository search, including developer tools, guides, SDKs, APIs, automation, security research, dashboards, hackathon resources and infrastructure releases.

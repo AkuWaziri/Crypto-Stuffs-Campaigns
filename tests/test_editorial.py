@@ -54,3 +54,16 @@ def test_each_feed_item_gets_a_specific_content_recommendation():
 def test_content_recommendation_is_compact():
     item = {"text": "New stablecoin payment route released " + ("details " * 100), "url": "https://example.com", "source": "web"}
     assert len(build_post_recommendation(item)) < 1000
+
+def test_recommendation_uses_specific_post_details_and_research_questions():
+    item = {"text": "Stablecoin volume rose 42% after the new payment route launched", "url": "https://example.com/data", "source": "web"}
+    rec = build_post_recommendation(item)
+    assert "42%" in rec
+    assert "baseline" in rec.lower()
+    assert "Evidence to collect" in rec
+    assert "Your analysis question" in rec
+
+def test_x_recommendation_does_not_claim_verification_without_flag():
+    item = {"text": "Crypto protocol update", "url": "https://x.com/example/status/1", "source": "x_high_performance", "author": "example"}
+    rec = build_post_recommendation(item)
+    assert "verified X account" not in rec
