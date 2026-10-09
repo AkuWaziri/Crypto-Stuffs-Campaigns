@@ -12,23 +12,22 @@ A read-only crypto intelligence feed and editorial research assistant delivered 
 
 The scheduled run targets up to 30 feed items: up to 20 viral/trending posts and 10 practical discoveries, filling unused slots from remaining candidates where available. Thirty is a cap, not a guaranteed count.
 
-## Editorial intelligence (new)
+## Editorial intelligence
 
-After successfully delivering new feed items, the bot sends a compact **Editorial Intelligence** digest for up to three of the strongest leads. It includes:
-- topic classification and source link;
-- a prompt to verify the claim and identify what remains uncertain;
-- an angle for a technical or practical explanation;
-- a **Build Radar** mini-tool concept to validate against real user needs;
-- a repeatable human review checklist.
+After successfully delivering new feed items, the bot sends a compact **Editorial Intelligence** digest for up to three strong leads. The digest gives each selected finding:
+- a topic and source link, with a reminder to verify the underlying claim;
+- **three differentiated angles**: technical mechanism, second-order implication, and builder/experiment angle;
+- a **post scaffold** with placeholders for verified facts, interpretation, caveat, and test;
+- a **Build Radar** mini-tool concept to validate against real user needs.
 
-This layer is intentionally transparent and heuristic-based. It does not pretend that a headline is verified, does not generate fabricated evidence, and does not auto-publish social posts. Treat its angles and build ideas as starting points for investigation.
+The angles are topic-specific (security, stablecoin payments, DeFi, AI agents, developer tools, on-chain research, infrastructure, and opportunities). They are rule-based writing scaffolds, not a substitute for reading primary sources or independently verifying claims. The bot does not claim a hypothesis is fact and does not auto-publish social posts.
 
 ## Deduplication and delivery
 
 - The discovery lanes filter previously sent IDs and content fingerprints using local JSON state.
 - State is written after successful Telegram delivery.
 - GitHub Actions runs the feed every 5 hours and uses Actions cache to restore the state file.
-- Manual execution is available with `workflow_dispatch`.
+- Manual execution is available with workflow_dispatch.
 
 ## Safety and mode
 
@@ -38,18 +37,16 @@ This layer is intentionally transparent and heuristic-based. It does not pretend
 
 ## Required GitHub Actions secrets
 
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
-- `X_AUTH_TOKEN`
-- `X_CT0`
+- TELEGRAM_BOT_TOKEN
+- TELEGRAM_CHAT_ID
+- X_AUTH_TOKEN
+- X_CT0
 
 ## Local usage
 
-```bash
-pip install -r requirements.txt
-python main.py --telegram
-python main.py --test
-pytest -q
-```
+    pip install -r requirements.txt
+    python main.py --telegram
+    python main.py --test
+    pytest -q
 
-`--test` performs a dry run and prints messages instead of sending them.
+The --test flag performs a dry run and prints messages instead of sending them.

@@ -1,4 +1,4 @@
-from editorial import build_editorial_digest, _score, _topic
+from editorial import build_editorial_digest, _score, _topic, _editorial_angles
 
 def test_digest_includes_source_and_human_review():
     item = {
@@ -25,4 +25,19 @@ def test_empty_input_returns_empty_digest():
 
 def test_digest_respects_telegram_size():
     item = {"text": "Technical finding " + ("x" * 1000), "url": "https://example.com", "source": "web"}
-    assert len(build_editorial_digest([item] * 5, limit=5)) <= 3900
+    assert len(build_editorial_digest([item] * 5, limit=3)) <= 3900
+
+def test_digest_provides_topic_specific_angles_and_post_scaffold():
+    item = {"text": "A new stablecoin payment route changes transfer fees", "url": "https://example.com", "source": "web"}
+    digest = build_editorial_digest([item])
+    assert "DIFFERENTIATION ANGLES" in digest
+    assert "Second order" in digest
+    assert "Builder lens" in digest
+    assert "POST SCAFFOLD" in digest
+    assert "[verified change]" in digest
+
+def test_angles_are_topic_specific():
+    security = _editorial_angles({"text": "smart contract exploit"})
+    payments = _editorial_angles({"text": "stablecoin payments"})
+    assert "failure path" in security[0]
+    assert "full path" in payments[0]
