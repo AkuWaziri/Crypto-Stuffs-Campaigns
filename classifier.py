@@ -23,6 +23,7 @@ AIRDROP_TERMS = ("airdrop", "airdrops", "air drop", "token campaign", "crypto ca
 HACKATHON_TERMS = ("hackathon", "hackathons")
 REWARD_TERMS = ("reward", "rewards", "prize", "prizes", "bounty", "bounties", "grant", "grants")
 VIDEO_TERMS = ("video", "videos", "video challenge", "video campaign", "short explainer")
+SECURITY_TERMS = ("security", "exploit", "exploits", "hacked", "hack", "vulnerability", "vulnerabilities", "suspicious wallet", "wallet movements", "drained", "drainer", "phishing", "rug pull")
 
 
 def _has_term(text, terms):
@@ -47,6 +48,7 @@ def classify(item):
     hackathon = _has_term(low, HACKATHON_TERMS)
     reward = _has_term(low, REWARD_TERMS)
     video = _has_term(low, VIDEO_TERMS)
+    security = _has_term(low, SECURITY_TERMS)
 
     if satire:
         types.extend(["satire", "funny_creative_crypto"])
@@ -62,6 +64,8 @@ def classify(item):
         types.append("reward")
     if video:
         types.append("video")
+    if security:
+        types.append("security")
 
     item["types"] = list(dict.fromkeys(types))
     item["crypto_relevant"] = crypto
