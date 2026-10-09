@@ -32,6 +32,7 @@ jobs:
           path: .campaign_state.json
           key: crypto-stuffs-campaign-state-v4-${{ github.run_id }}
           restore-keys: |
+            crypto-stuffs-campaign-state-v4-
             crypto-stuffs-campaign-state-v3-
             crypto-stuffs-campaign-state-v2-
             crypto-stuffs-campaign-state-
