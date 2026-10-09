@@ -37,7 +37,7 @@ SECURITY_TERMS = ("security", "exploit", "exploits", "hacked", "hack", "vulnerab
 
 def _has_term(text, terms):
     return any(
-        re.search(r"(?<!\\w)" + re.escape(term) + r"(?!\\w)", text)
+        re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text)
         for term in terms
     )
 
