@@ -148,7 +148,7 @@ def _farcaster():
                 cast_url = cast.get("url") or cast.get("hash")
                 if cast_url and not str(cast_url).startswith("http"):
                     username = author_obj.get("username", "farcaster")
-                    cast_url = f"https://warpcast.com/{username}/{str(cast_url).replace("0x", "")}"
+                    cast_url = f"https://warpcast.com/{username}/{str(cast_url).removeprefix('0x')}"
                 created = cast.get("timestamp") or cast.get("created_at")
                 items.append(_item("farcaster", author, text, cast_url, created, True))
         except Exception as exc:
