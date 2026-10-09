@@ -1,5 +1,8 @@
 import re
 
+# Broad crypto relevance: the bot is not limited to a fixed list of content formats.
+# Any clearly crypto-related post can pass, whether it is news, research, a launch,
+# a market move, a product, an opinion, a campaign, a meme, or something unexpected.
 CRYPTO_TERMS = (
     "crypto", "cryptocurrency", "bitcoin", "btc", "ethereum", "eth", "solana",
     "sol", "defi", "web3", "blockchain", "onchain", "on-chain", "dao", "nft",
@@ -8,6 +11,12 @@ CRYPTO_TERMS = (
     "cex", "evm", "zk", "restaking", "smart contract", "smart contracts",
     "account abstraction", "depin", "layerzero", "arbitrum", "optimism",
     "base", "cosmos", "polkadot", "avalanche", "near", "sui", "aptos",
+    "token unlock", "token launch", "tokenomics", "governance proposal",
+    "validator", "validators", "bridge", "bridging", "gas fees", "gas fee",
+    "transaction hash", "tx hash", "liquidation", "liquidations", "tvl",
+    "total value locked", "funding round", "mainnet", "testnet", "whitepaper",
+    "seed phrase", "private key", "crypto exchange", "exchange listing",
+    "onchain data", "on-chain data", "wallet address", "block explorer",
 )
 
 SATIRE_TERMS = (
@@ -28,7 +37,7 @@ SECURITY_TERMS = ("security", "exploit", "exploits", "hacked", "hack", "vulnerab
 
 def _has_term(text, terms):
     return any(
-        re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text)
+        re.search(r"(?<!\\w)" + re.escape(term) + r"(?!\\w)", text)
         for term in terms
     )
 
@@ -36,40 +45,36 @@ def _has_term(text, terms):
 def classify(item):
     text = " ".join(str(item.get("text", "")).split())
     low = text.lower()
-    crypto = _has_term(low, CRYPTO_TERMS)
     source = str(item.get("source", "")).lower()
-    if source in {"x", "reddit", "medium", "telegram", "bluesky", "farcaster", "mastodon"}:
-        crypto = crypto or bool(item.get("crypto_query"))
+    known_sources = {"x", "reddit", "medium", "telegram", "bluesky", "farcaster", "mastodon"}
+    crypto_query_match = source in known_sources and bool(item.get("crypto_query"))
+    crypto = _has_term(low, CRYPTO_TERMS) or crypto_query_match
 
     types = []
-    satire = _has_term(low, SATIRE_TERMS)
-    research = _has_term(low, RESEARCH_TERMS)
-    airdrop = _has_term(low, AIRDROP_TERMS)
-    hackathon = _has_term(low, HACKATHON_TERMS)
-    reward = _has_term(low, REWARD_TERMS)
-    video = _has_term(low, VIDEO_TERMS)
-    security = _has_term(low, SECURITY_TERMS)
-
-    if satire:
+    if _has_term(low, SATIRE_TERMS):
         types.extend(["satire", "funny_creative_crypto"])
-    if research:
+    if _has_term(low, RESEARCH_TERMS):
         types.append("research")
         if _has_term(low, ("finding", "findings")):
             types.append("finding")
-    if airdrop:
+    if _has_term(low, AIRDROP_TERMS):
         types.append("airdrop")
-    if hackathon:
+    if _has_term(low, HACKATHON_TERMS):
         types.append("hackathon")
-    if reward:
+    if _has_term(low, REWARD_TERMS):
         types.append("reward")
-    if video:
+    if _has_term(low, VIDEO_TERMS):
         types.append("video")
-    if security:
+    if _has_term(low, SECURITY_TERMS):
         types.append("security")
+    if crypto and not types:
+        types.append("crypto_general")
 
     item["types"] = list(dict.fromkeys(types))
     item["crypto_relevant"] = crypto
-    item["content_relevant"] = bool(types)
+    # Broad inclusion: any crypto-related item qualifies, even when it does not
+    # match a predefined campaign, research, satire, or security category.
+    item["content_relevant"] = crypto or bool(types)
     return item
 
 
