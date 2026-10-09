@@ -165,7 +165,7 @@ def build_post_recommendation(item):
         payoff = "show the failure path and one concrete check developers can add"
     elif topic == "Stablecoins & payments":
         investigation = "Map the full user route, then compare network/gas costs, conversion or bridge fees, settlement time, supported regions, and failed transfers against the closest alternative."
-        evidence = "route-by-route total cost, settlement time, supported chains/regions, and a timestamped comparison baseline"
+        evidence = "route-by-route total fees and total cost, settlement time, supported chains/regions, and a timestamped comparison baseline"
         thesis = f"Does {signal} improve the user's end-to-end payment, or only one step in the route?"
         payoff = "publish a real route comparison and state which user benefits under which conditions"
     elif topic == "DeFi & markets":
