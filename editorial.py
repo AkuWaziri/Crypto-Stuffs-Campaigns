@@ -29,10 +29,15 @@ TOOL_IDEAS = [
 def _normal(text):
     return re.sub(r"\s+", " ", str(text or "")).strip()
 
+def _has_term(text, term):
+    if term in {"ai", "l2", "api", "sdk", "rpc", "dex", "usdc", "usdt"}:
+        return re.search(r"\b" + re.escape(term) + r"\b", text) is not None
+    return term in text
+
 def _topic(item):
     text = " " + _normal(item.get("text", "")).lower() + " "
     for topic, terms in TOPIC_RULES:
-        if any(term in text for term in terms):
+        if any(_has_term(text, term) for term in terms):
             return topic
     return "Crypto research"
 
@@ -63,7 +68,7 @@ def _title(item):
 def _tool_idea(item):
     text = _normal(item.get("text", "")).lower()
     for terms, name, description in TOOL_IDEAS:
-        if any(term in text for term in terms):
+        if any(_has_term(text, term) for term in terms):
             return name, description
     return "Evidence-linked topic tracker", "Collect primary sources and meaningful updates for this topic, with dates and duplicate detection."
 
