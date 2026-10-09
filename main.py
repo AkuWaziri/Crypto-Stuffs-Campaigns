@@ -6,7 +6,6 @@ os.environ.setdefault("VIRAL_SEEN_STATE_FILE", ".campaign_state.json")
 
 from config import HIGH_PERFORMANCE_MAX_ITEMS, LOOKBACK_HOURS
 from discovery import search_crypto_alpha
-from editorial import write_findings
 from high_performance import _item_key, _load_seen_ids, mark_sent, search_high_performing_x
 from telegram import send_message
 from web_sources import fetch_public_content
@@ -25,7 +24,6 @@ def _is_recent(item, cutoff):
                 created = created.replace(tzinfo=timezone.utc)
         return created >= cutoff
     except (TypeError, ValueError, OverflowError, OSError):
-        # Unknown dates should not silently discard a potentially useful finding.
         return True
 
 
@@ -53,9 +51,9 @@ def _unique_findings(groups, limit):
     return selected[:limit]
 
 
-def _format_finding(item, story):
-    # Deliver the finding itself, with its source attached; no editorial metadata.
-    return f"{story.strip()}\n\nSource: {item.get('url', '')}"
+def _format_finding(item):
+    # Forward source material as-is, with a direct link for the user to investigate.
+    return f"{item['text'].strip()}\n\nSource: {item['url']}"
 
 
 def main():
@@ -68,7 +66,7 @@ def main():
     print("mode=read-only")
     print("feed=crypto_findings")
     print("sources=x,news,github,reddit,medium,telegram,bluesky,farcaster")
-    print("style=human,evidence-led,conversational")
+    print("style=source-first,investigation-led,no-generated-rewrite")
     print(f"lookback_hours={LOOKBACK_HOURS}")
     print(f"max_per_run={HIGH_PERFORMANCE_MAX_ITEMS}")
 
@@ -92,11 +90,9 @@ def main():
         print("findings_sent=0")
         return
 
-    stories = write_findings(selected)
     delivered_items = []
     for item in selected:
-        story = stories.get(str(item["id"])) or item["text"]
-        message = _format_finding(item, story)
+        message = _format_finding(item)
         try:
             delivered = send_message(message, dry_run=not args.telegram or args.test)
         except Exception as exc:
@@ -108,7 +104,6 @@ def main():
     if delivered_items:
         mark_sent(delivered_items)
     print(f"findings_selected={len(selected)}")
-    print(f"findings_written={sum(1 for item in selected if stories.get(str(item['id'])))}")
     print(f"findings_sent={len(delivered_items)}")
 
 

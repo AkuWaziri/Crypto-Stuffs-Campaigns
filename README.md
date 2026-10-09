@@ -1,20 +1,19 @@
 # Crypto-Stuffs-Campaigns
 
-An automated crypto intelligence feed for Telegram. It searches public news and social sources, identifies concrete developments and unusual patterns, then delivers concise, human-sounding findings with links to the underlying source.
+An automated crypto findings feed for Telegram. It scans public news and social sources and forwards up to 10 distinct, recent findings per run with the direct source link. No paid AI API key or generated rewrite is required.
 
-## What it looks for
+## Coverage
 
-- Exploits, security incidents, wallet clusters, suspicious fund flows and on-chain investigations
+- Exploits, security incidents, wallet movements, suspicious fund flows and on-chain investigations
 - Protocol updates, builders, new tools, open-source projects, infrastructure and technical discoveries
 - DeFi, stablecoins, payments, AI agents, adoption, airdrops, rewards, launches and governance
-- Market anomalies and unexpected connections between crypto events
-- Costly mistakes, user losses, compensation decisions and accountability stories
+- Market anomalies, unexpected links between events, user losses and accountability stories
 
-## Writing standard
+## Investigation standard
 
-The feed should sound like a knowledgeable crypto-native person who found something interesting, checked the details and wants to explain it naturally. Lead with the finding, preserve concrete numbers and timelines, explain the sequence, and use irony or sarcasm only when it fits. Avoid generic news intros, corporate summaries, forced slang, engagement bait and repetitive templates. Never invent wallet attribution, motives, numbers or causal links. Keep allegations attributed and uncertainty clear.
+Prioritize stories where the source provides a concrete finding, unusual pattern, meaningful numbers, a timeline or a connection worth following. When assessing a story, verify important numbers, timelines, source claims and links wherever possible; compare claims with on-chain evidence, follow wallet movements and trace connections between events when reliable public data is available. Do not present unverified allegations or inferred links as established facts.
 
-Each Telegram message contains the finished finding and a source link. It does not send research assignments, writing suggestions or editorial recommendations.
+The bot forwards the source material and its direct URL so the user can follow the link and investigate independently. It does not generate rewritten commentary or research assignments.
 
 ## Sources
 
@@ -27,21 +26,11 @@ Each Telegram message contains the finished finding and a source link. It does n
 - Farcaster public search
 - Optional public Telegram channels configured in `TELEGRAM_CHANNELS`
 
-Source availability varies; Reddit and other platforms may rate-limit or block automated requests.
+Source availability varies; platforms may rate-limit or block automated requests.
 
 ## Schedule and delivery
 
-GitHub Actions runs every 5 hours and supports manual runs. The feed sends up to 30 new findings per run and checks a 7-day lookback. Deduplication state persists across runs, and items are marked as sent only after Telegram accepts delivery.
-
-## Model-assisted writing
-
-For the full human-tone rewrite, configure these GitHub Actions repository secrets/variables:
-
-- Secret `OPENAI_API_KEY`: API key for an OpenAI-compatible chat-completions endpoint
-- Optional variable `OPENAI_BASE_URL`: defaults to `https://api.openai.com/v1`
-- Optional variable `OPENAI_MODEL`: defaults to `gpt-4o-mini`
-
-Without an API key, the bot remains operational and forwards source text with its source link, but cannot produce the model-assisted rewrite.
+GitHub Actions runs every 3 hours (UTC cron schedule) and supports manual runs. The feed sends up to 10 new findings per run and checks a 7-day lookback. Deduplication state persists across runs, and items are marked as sent only after Telegram accepts delivery.
 
 ## Required GitHub Actions secrets
 
