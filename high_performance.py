@@ -195,7 +195,7 @@ def _load_seen_ids():
         # Migrate older state files: previously sent URLs were only stored inside
         # source IDs, often with RSS tracking parameters attached.
         for item_id in ids:
-            match = re.search(r"https?://\\S+", item_id)
+            match = re.search(r"https?://\S+", item_id)
             if match:
                 normalized = _canonical_url(match.group(0))
                 if normalized:
