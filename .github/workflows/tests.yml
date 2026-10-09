@@ -15,12 +15,12 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
       - name: Compile project modules
-        run: python -m py_compile classifier.py config.py discovery.py high_performance.py main.py telegram.py web_sources.py
+        run: python -m py_compile classifier.py config.py discovery.py high_performance.py main.py telegram.py web_sources.py editorial.py
       - name: Run smoke tests
         run: |
           python - <<'PY'
+          import main
           from classifier import classify, is_relevant
-          from main import _format_finding
 
           item = {
               "id": "x:https://x.com/test/status/1",
@@ -32,7 +32,12 @@ jobs:
           result = classify(item)
           assert is_relevant(result)
           assert "security" in result["types"] or "research" in result["types"]
-          message = _format_finding(item)
+
+          # Keep CI smoke tests independent of API credentials and network calls.
+          main.write_finding = lambda value: (
+              value["text"] + "\n\nSource: " + value["url"]
+          )
+          message = main._format_finding(item)
           assert message.startswith(item["text"])
           assert "Source: https://x.com/test/status/1" in message
           print("smoke_tests=passed")
