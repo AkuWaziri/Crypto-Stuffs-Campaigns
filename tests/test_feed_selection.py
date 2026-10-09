@@ -8,7 +8,7 @@ def item(source, number, *, text=None, url=None, views=0):
         "id": f"{source}:{number}",
         "source": source,
         "author": "test",
-        "text": text or f"Distinct crypto finding number {number} with useful details.",
+        "text": text or f"Distinct {source} crypto finding number {number} with useful details.",
         "url": url or f"https://example.com/{source}/{number}",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "views": views,
