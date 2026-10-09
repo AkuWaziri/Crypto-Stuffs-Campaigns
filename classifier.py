@@ -27,7 +27,7 @@ VIDEO_TERMS = ("video", "videos", "video challenge", "video campaign", "short ex
 
 def _has_term(text, terms):
     return any(
-        re.search(r"(?<!\\w)" + re.escape(term) + r"(?!\\w)", text)
+        re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text)
         for term in terms
     )
 
@@ -45,7 +45,7 @@ def classify(item):
     research = _has_term(low, RESEARCH_TERMS)
     airdrop = _has_term(low, AIRDROP_TERMS)
     hackathon = _has_term(low, HACKATHON_TERMS)
-    reward = _has_term(low, REWARD_TERMS) or bool(re.search(r"\\bprizes?\\b", low))
+    reward = _has_term(low, REWARD_TERMS)
     video = _has_term(low, VIDEO_TERMS)
 
     if satire:
