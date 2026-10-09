@@ -135,14 +135,14 @@ def _editorial_angles(item):
 def _specific_signal(text):
     """Extract visible evidence cues from the actual post without inventing facts."""
     text = _normal(text)
-    numbers = re.findall(r"(?<![A-Za-z])(?:\\$|\\b)?\\d[\\d,.]*(?:\\s?%|\\s?(?:k|m|b)\\b|\\s?(?:days?|hours?|users?|wallets?|transactions?|validators?|TPS)\\b)?", text, flags=re.I)
+    numbers = re.findall(r"(?<![A-Za-z])(?:\$|\b)?\d[\d,.]*(?:\s?%|\s?(?:k|m|b)\b|\s?(?:days?|hours?|users?|wallets?|transactions?|validators?|TPS)\b)?", text, flags=re.I)
     numbers = [x.strip() for x in numbers if x.strip()][:4]
     quoted = re.findall(r"[“\"]([^”\"]{8,90})[”\"]", text)
     if quoted:
         return "the specific claim “" + quoted[0] + "”"
     if numbers:
         return "the reported figure(s) " + ", ".join(numbers)
-    phrases = re.findall(r"[A-Za-z0-9][A-Za-z0-9+.#/_-]*(?:\\s+[A-Za-z0-9][A-Za-z0-9+.#/_-]*){1,5}", text)
+    phrases = re.findall(r"[A-Za-z0-9][A-Za-z0-9+.#/_-]*(?:\s+[A-Za-z0-9][A-Za-z0-9+.#/_-]*){1,5}", text)
     for phrase in phrases:
         if len(phrase) > 12 and any(ch.isalpha() for ch in phrase):
             return "the claim about “" + phrase[:85].strip() + "”"
