@@ -150,7 +150,7 @@ def _tweet_datetime(tweet):
 def _item_key(item):
     """Return a normalized content fingerprint robust to whitespace and tracking markup."""
     text = str(item.get("text", "")).lower()
-    text = re.sub(r"https?://\S+, " ", text)
+    text = re.sub(r"https?://\S+", " ", text)
     text = re.sub(r"[^a-z0-9]+", " ", text)
     text = " ".join(text.split())
     # The leading phrase is usually the article/post headline. Using it avoids
