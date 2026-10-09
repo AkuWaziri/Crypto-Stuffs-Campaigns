@@ -6,6 +6,7 @@ os.environ.setdefault("VIRAL_SEEN_STATE_FILE", ".campaign_state.json")
 
 from config import HIGH_PERFORMANCE_MAX_ITEMS, LOOKBACK_HOURS
 from discovery import search_crypto_alpha
+from editorial import write_finding
 from high_performance import _item_key, _load_seen_ids, mark_sent, search_high_performing_x
 from telegram import send_message
 from web_sources import fetch_public_content
@@ -52,8 +53,8 @@ def _unique_findings(groups, limit):
 
 
 def _format_finding(item):
-    # Forward source material as-is, with a direct link for the user to investigate.
-    return f"{item['text'].strip()}\n\nSource: {item['url']}"
+    """Generate the human-DNA write-up and preserve the direct source link."""
+    return write_finding(item)
 
 
 def main():
@@ -64,9 +65,9 @@ def main():
 
     print("CRYPTO-STUFFS")
     print("mode=read-only")
-    print("feed=crypto_findings")
+    print("feed=ai_written_crypto_findings")
     print("sources=x,news,github,reddit,medium,telegram,bluesky,farcaster")
-    print("style=source-first,investigation-led,no-generated-rewrite")
+    print("style=openai_human_dna_source_linked")
     print(f"lookback_hours={LOOKBACK_HOURS}")
     print(f"max_per_run={HIGH_PERFORMANCE_MAX_ITEMS}")
 
@@ -92,7 +93,12 @@ def main():
 
     delivered_items = []
     for item in selected:
-        message = _format_finding(item)
+        try:
+            message = _format_finding(item)
+        except Exception as exc:
+            # Keep the source material usable if the AI API is temporarily unavailable.
+            print(f"ai_writing_error={item['id']}: {exc}")
+            message = f"{item['text'].strip()}\n\nSource: {item['url']}"
         try:
             delivered = send_message(message, dry_run=not args.telegram or args.test)
         except Exception as exc:
