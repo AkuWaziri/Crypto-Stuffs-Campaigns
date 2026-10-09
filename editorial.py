@@ -224,4 +224,3 @@ def build_editorial_digest(items, limit=3):
     if len(digest) > 3900:
         return build_editorial_digest(chosen[:1], limit=1)
     return digest
-"
