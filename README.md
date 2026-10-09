@@ -1,48 +1,55 @@
 # Crypto-Stuffs-Campaigns
 
-Crypto-content discovery feed for Telegram.
+A read-only crypto intelligence feed and editorial research assistant delivered through Telegram.
 
-## What it watches
+## Current feed lanes
 
-The feed is now focused on one category only:
+1. **Viral and trending crypto posts from X** across AI and agents, DeFi, stablecoins, payments, security, infrastructure, smart contracts, airdrops, hackathons, on-chain activity, builders, protocols and other crypto niches.
+   - Looks back 7 days.
+   - Trending threshold: 20,000+ views by default.
+   - Viral tier: 50,000+ views.
+2. **Practical crypto discoveries** from Google News RSS and GitHub repository search, including developer tools, guides, SDKs, APIs, automation, security research, dashboards, hackathon resources and infrastructure releases.
 
-- **Funny/creative crypto content** — satire, parody, irony, jokes, memes, comics, humorous observations, funny crypto situations, shitposts and other genuinely humorous/creative crypto content.
+The scheduled run targets up to 30 feed items: up to 20 viral/trending posts and 10 practical discoveries, filling unused slots from remaining candidates where available. Thirty is a cap, not a guaranteed count.
 
-All other content categories are sunset.
+## Editorial intelligence (new)
 
-## Sources
+After successfully delivering new feed items, the bot sends a compact **Editorial Intelligence** digest for up to three of the strongest leads. It includes:
+- topic classification and source link;
+- a prompt to verify the claim and identify what remains uncertain;
+- an angle for a technical or practical explanation;
+- a **Build Radar** mini-tool concept to validate against real user needs;
+- a repeatable human review checklist.
 
-- X/Twitter
-- Reddit
-- Medium
-- Public Telegram channels
-- Bluesky
-- Farcaster
+This layer is intentionally transparent and heuristic-based. It does not pretend that a headline is verified, does not generate fabricated evidence, and does not auto-publish social posts. Treat its angles and build ideas as starting points for investigation.
 
-## Filtering
+## Deduplication and delivery
 
-Every item must be crypto-related and match the **Funny/creative crypto content** category.
+- The discovery lanes filter previously sent IDs and content fingerprints using local JSON state.
+- State is written after successful Telegram delivery.
+- GitHub Actions runs the feed every 5 hours and uses Actions cache to restore the state file.
+- Manual execution is available with `workflow_dispatch`.
 
-There is no quality score, signal score, ranking, campaign score, or campaign/reward classification.
+## Safety and mode
 
-## Current mode
+- Read-only discovery. No wallet connections, trading, token creation, or transaction execution.
+- Content is sent to Telegram for review; no automatic X publishing.
+- X search uses the authenticated session configured through GitHub Actions secrets.
 
-Read-only. No wallet connections, trading, token creation or transaction execution.
+## Required GitHub Actions secrets
 
-## X scraper
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+- `X_AUTH_TOKEN`
+- `X_CT0`
 
-X uses an authenticated web session supplied through GitHub Secrets.
+## Local usage
 
-Required secrets:
-- TELEGRAM_BOT_TOKEN
-- TELEGRAM_CHAT_ID
-- X_AUTH_TOKEN
-- X_CT0
+```bash
+pip install -r requirements.txt
+python main.py --telegram
+python main.py --test
+pytest -q
+```
 
-The GitHub Actions feed runs every 3 hours.
-
-## Separate high-performance crypto lane
-
-A separate discovery lane also searches X for high-performing crypto posts across niches including AI, AI agents, hacking/security, payments, DeFi, development, NFTs, nodes, infrastructure, on-chain findings, research, smart contracts, builders, protocols and wallets.
-
-Only posts verified at **100,000+ views** are eligible for this lane. They are sent separately from the funny/creative crypto feed and are not required to match the funny/creative category.
+`--test` performs a dry run and prints messages instead of sending them.

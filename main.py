@@ -7,6 +7,7 @@ from config import HIGH_PERFORMANCE_MAX_ITEMS
 from telegram import send_message
 from high_performance import search_high_performing_x, mark_sent
 from discovery import search_crypto_alpha
+from editorial import build_editorial_digest
 
 def main():
     parser = argparse.ArgumentParser(description="Crypto-Stuffs-Campaigns")
@@ -70,6 +71,14 @@ def main():
 
     if sent_items:
         mark_sent(sent_items)
+
+    # Editorial layer: summarize a few of the strongest findings into research angles.
+    # These are prompts for human investigation, not claims or auto-published posts.
+    if sent_items:
+        digest = build_editorial_digest(sent_items, limit=3)
+        if digest:
+            send_message(digest, dry_run=not args.telegram or args.test)
+
     print(f"viral_trending_found={len(viral_posts)}")
     print(f"crypto_alpha_found={len(alpha_posts)}")
     print(f"feed_selected={len(selected)}")
