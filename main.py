@@ -6,7 +6,7 @@ os.environ.setdefault("VIRAL_SEEN_STATE_FILE", ".campaign_state.json")
 
 from config import HIGH_PERFORMANCE_MAX_ITEMS, LOOKBACK_HOURS
 from discovery import search_crypto_alpha
-from editorial import write_finding
+from editorial import clean_source_text, write_finding
 from high_performance import _item_key, _load_seen_ids, mark_sent, search_high_performing_x
 from telegram import send_message
 from web_sources import fetch_public_content
@@ -98,7 +98,7 @@ def main():
         except Exception as exc:
             # Keep the source material usable if the AI API is temporarily unavailable.
             print(f"ai_writing_error={item['id']}: {exc}")
-            message = f"{item['text'].strip()}\n\nSource: {item['url']}"
+            message = f"{clean_source_text(item['text'])}\n\nSource: {item['url']}"
         try:
             delivered = send_message(message, dry_run=not args.telegram or args.test)
         except Exception as exc:
