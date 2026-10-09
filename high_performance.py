@@ -256,11 +256,25 @@ def search_high_performing_x():
                 except Exception as exc:
                     print(f"high_performance_detail_error={tid}: {exc}")
             created = _tweet_datetime(tweet)
-            if views is None or views < HIGH_PERFORMANCE_MIN_VIEWS: continue
+            if views is None or views < 1000: continue
             if created is None or created < cutoff: continue
-            tier = "VIRAL" if views >= 50000 else "TRENDING"
+            is_trending = views >= HIGH_PERFORMANCE_MIN_VIEWS
+            tier = ("VIRAL" if views >= 50000 else "TRENDING") if is_trending else "SOCIAL"
             found.append({"id":tid,"author":tweet.get("author","unknown"),"text":" ".join(str(tweet.get("text","")).split()),
                           "url":tweet.get("url",""),"created_at":_iso(tweet.get("created_at")),
-                          "source":"x_high_performance","niche":niche,"views":views,"tier":tier})
-    found.sort(key=lambda x: (x["views"], x.get("created_at") or ""), reverse=True)
-    return found[:HIGH_PERFORMANCE_MAX_ITEMS]
+                          "source":"x_high_performance" if is_trending else "x_social",
+                          "niche":niche,"views":views,"tier":tier})
+    trending = sorted(
+        (x for x in found if x["source"] == "x_high_performance"),
+        key=lambda x: (x["views"], x.get("created_at") or ""), reverse=True,
+    )
+    social = sorted(
+        (x for x in found if x["source"] == "x_social"),
+        key=lambda x: (x.get("created_at") or "", x["views"]), reverse=True,
+    )
+    trending = trending[:HIGH_PERFORMANCE_MAX_ITEMS]
+    social_limit = max(0, HIGH_PERFORMANCE_MAX_ITEMS - len(trending))
+    result = trending + social[:social_limit]
+    print(f"x_trending_candidates={len(trending)}")
+    print(f"x_social_candidates={min(len(social), social_limit)}")
+    return result
