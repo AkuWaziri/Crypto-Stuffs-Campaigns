@@ -12,7 +12,7 @@ from telegram import send_message
 from web_sources import fetch_public_content
 
 
-SOCIAL_SOURCES = {"x_high_performance", "medium", "reddit", "telegram", "bluesky", "farcaster"}
+SOCIAL_SOURCES = {"x_high_performance", "x_social", "medium", "reddit", "telegram", "bluesky", "farcaster"}
 WEB_SOURCES = {"web"}
 
 
