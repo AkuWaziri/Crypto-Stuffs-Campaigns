@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from html import unescape
 from urllib.parse import quote, urljoin
 import re
 import xml.etree.ElementTree as ET
@@ -32,11 +33,19 @@ HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/json,application/xml",
 }
 
+
 def _clean(text):
-    return " ".join(str(text or "").split())
+    """Convert scraped HTML/RSS text to plain, human-readable text."""
+    raw = unescape(str(text or ""))
+    soup = BeautifulSoup(raw, "html.parser")
+    for node in soup(["script", "style", "noscript"]):
+        node.decompose()
+    return " ".join(soup.get_text(" ", strip=True).split())
+
 
 def _now():
     return datetime.now(timezone.utc).isoformat()
+
 
 def _item(source, author, text, url, created_at=None, crypto_query=False):
     return {
@@ -49,6 +58,7 @@ def _item(source, author, text, url, created_at=None, crypto_query=False):
         "crypto_query": crypto_query,
     }
 
+
 def _parse_date(value):
     if not value:
         return None
@@ -57,19 +67,25 @@ def _parse_date(value):
     except (TypeError, ValueError, OverflowError):
         return value
 
+
 def _rss(url, source):
     response = requests.get(url, headers=HEADERS, timeout=20)
     response.raise_for_status()
     root = ET.fromstring(response.content)
     items = []
     for node in root.findall(".//item"):
-        title = node.findtext("title", "")
-        description = node.findtext("description", "")
-        link = node.findtext("link", "")
+        title = _clean(node.findtext("title", ""))
+        description = _clean(node.findtext("description", ""))
+        link = _clean(node.findtext("link", ""))
         pub = _parse_date(node.findtext("pubDate", ""))
         author = node.findtext("{http://purl.org/dc/elements/1.1/}creator", "") or source
-        items.append(_item(source, author, f"{title} {description}", link, pub, True))
+        # Keep title and description readable; remove duplicates if RSS repeats the title.
+        text = title
+        if description and description.casefold() not in title.casefold():
+            text = f"{title}. {description}" if title else description
+        items.append(_item(source, author, text, link, pub, True))
     return items
+
 
 def _reddit():
     items = []
@@ -104,6 +120,7 @@ def _reddit():
                 print(f"reddit_error={subreddit}:{query}: {exc}")
     return items
 
+
 def _telegram():
     items = []
     for channel in TELEGRAM_CHANNELS:
@@ -128,6 +145,7 @@ def _telegram():
         except Exception as exc:
             print(f"telegram_error={channel}: {exc}")
     return items
+
 
 def _farcaster():
     items = []
@@ -154,6 +172,7 @@ def _farcaster():
         except Exception as exc:
             print(f"farcaster_error={query}: {exc}")
     return items
+
 
 def _bluesky():
     items = []
@@ -182,6 +201,7 @@ def _bluesky():
         except Exception as exc:
             print(f"bluesky_error={query}: {exc}")
     return items
+
 
 def fetch_public_content():
     items = []
@@ -222,6 +242,7 @@ def fetch_public_content():
         seen.add(key)
         unique.append(item)
     return unique
+
 
 def fetch_public_campaigns():
     return fetch_public_content()
