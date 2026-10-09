@@ -219,14 +219,13 @@ def build_post_recommendation(item):
     performance = f" | {views:,} views" if isinstance(views, (int, float)) and views > 0 else ""
     source_label = "verified X account" if item.get("source") == "x_high_performance" and item.get("verified") else str(item.get("source", "source")).upper()
     return (
-        f"🔎 RESEARCH-LED CONTENT IDEA | {topic}\\n"
-        f"Source signal: {title[:190]}{performance}\\n"
-        f"Your analysis question: {thesis}\\n"
-        f"Investigate: {investigation}\\n"
-        f"Evidence to collect: {evidence}.\\n"
-        f"Angle: {framing}\\n"
-        f"Write it as: finding → evidence/comparison → your interpretation → caveat → practical implication.\\n"
-        f"Content payoff: {payoff}.\\n"
+        f"🔎 RESEARCH-LED CONTENT IDEA | {topic}\n"
+        f"Source signal: {title[:110]}{performance}\n"
+        f"Your analysis question: {thesis}\n"
+        f"Investigate: {investigation}\n"
+        f"Evidence to collect: {evidence}.\n"
+        f"Angle: {framing}\n"
+        f"Write it as: finding → evidence/comparison → your interpretation → caveat → practical implication.\n"
         f"Original source: {item.get('url', '')}"
     )
 

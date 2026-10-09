@@ -45,10 +45,10 @@ def test_angles_are_topic_specific():
 def test_each_feed_item_gets_a_specific_content_recommendation():
     security = build_post_recommendation({"text": "Smart contract exploit exposes a permission bug", "url": "https://example.com/security"})
     payments = build_post_recommendation({"text": "New stablecoin payment route cuts fees", "url": "https://example.com/payments"})
-    assert "CONTENT RECOMMENDATION" in security
+    assert "RESEARCH-LED CONTENT IDEA" in security
     assert "failure path" in security.lower()
     assert "total fees" in payments.lower()
-    assert "Hook to develop" in payments
+    assert "Your analysis question" in payments
     assert build_post_recommendation({"text": "missing source"}) == ""
 
 def test_content_recommendation_is_compact():
