@@ -86,30 +86,6 @@ def _tweet_views_by_id(obj, out=None):
             _tweet_views_by_id(value, out)
     return out
 
-def _verified_handles(obj):
-    """Return handles with an explicit X verification/checkmark flag in raw response data."""
-    found = set()
-    def walk(node):
-        if isinstance(node, dict):
-            legacy = node.get("legacy") if isinstance(node.get("legacy"), dict) else {}
-            core = node.get("core") if isinstance(node.get("core"), dict) else {}
-            verification = node.get("verification_info") if isinstance(node.get("verification_info"), dict) else {}
-            handle = legacy.get("screen_name") or core.get("screen_name") or node.get("screen_name") or node.get("username")
-            checked = (
-                node.get("is_blue_verified") is True or node.get("verified") is True
-                or legacy.get("verified") is True or verification.get("is_blue_verified") is True
-                or verification.get("verified") is True
-            )
-            if handle and checked:
-                found.add(str(handle).lstrip("@").lower())
-            for value in node.values():
-                walk(value)
-        elif isinstance(node, list):
-            for value in node:
-                walk(value)
-    walk(obj)
-    return found
-
 def _search(tk, query, limit):
     qid = C.__dict__.get("SEARCH_TIMELINE", "M1jEez78PEfVfbQLvlWMvQ")
     url = f"{C.GQL_BASE}/{qid}/SearchTimeline"
@@ -118,7 +94,6 @@ def _search(tk, query, limit):
               "x-twitter-client-language":"en","accept":"*/*","origin":"https://x.com",
               "referer":"https://x.com/home","user-agent":C.UA,"content-type":"application/json"}
     tweets, users, cursor = {}, {}, None
-    verified_handles = set()
     for _ in range(2):
         variables = {"rawQuery":query,"count":min(20,limit),"querySource":"typed_query","product":"Latest"}
         if cursor: variables["cursor"] = cursor
@@ -127,19 +102,15 @@ def _search(tk, query, limit):
         response.raise_for_status()
         raw = response.json()
         view_counts = _tweet_views_by_id(raw)
-        verified_handles.update(_verified_handles(raw))
         before=len(tweets)
         cursor=_walk_timeline(raw,tweets,users)
         for tid, views in view_counts.items():
             if tid in tweets:
                 tweets[tid]["views"] = views
         if len(tweets)==before or not cursor or len(tweets)>=limit: break
-    return [{
-        **tweet,
-        "author": users.get(tweet.get("author_id"), "unknown"),
-        "verified": str(users.get(tweet.get("author_id"), "unknown")).lstrip("@").lower() in verified_handles,
-        "url": f"https://x.com/{users.get(tweet.get('author_id'), 'unknown')}/status/{tweet['id']}",
-    } for tweet in tweets.values()]
+    return [{**tweet,"author":users.get(tweet.get("author_id"),"unknown"),
+             "url":f"https://x.com/{users.get(tweet.get('author_id'),'unknown')}/status/{tweet['id']}"}
+            for tweet in tweets.values()]
 
 def _detail_views(tk, tweet_id):
     """Fetch one tweet raw GraphQL result without TweetKit transaction-id helper."""
@@ -233,9 +204,6 @@ def search_high_performing_x():
             print(f"high_performance_search_error={niche}: {exc}"); continue
         for tweet in candidates:
             tid=str(tweet.get("id",""))
-            # Only allow X posts from accounts with an explicit verified/checkmark flag.
-            if not tweet.get("verified"):
-                continue
             if not tid or tid in seen: continue
             seen.add(tid)
             candidate = {
@@ -258,6 +226,6 @@ def search_high_performing_x():
             tier = "VIRAL" if views >= 50000 else "TRENDING"
             found.append({"id":tid,"author":tweet.get("author","unknown"),"text":" ".join(str(tweet.get("text","")).split()),
                           "url":tweet.get("url",""),"created_at":_iso(tweet.get("created_at")),
-                          "source":"x_high_performance","niche":niche,"views":views,"tier":tier,"verified":True})
+                          "source":"x_high_performance","niche":niche,"views":views,"tier":tier})
     found.sort(key=lambda x: (x["views"], x.get("created_at") or ""), reverse=True)
     return found[:HIGH_PERFORMANCE_MAX_ITEMS]
