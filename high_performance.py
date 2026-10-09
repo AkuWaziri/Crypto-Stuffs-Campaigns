@@ -212,7 +212,10 @@ def mark_sent(items):
             item_id = item.get("id")
             if item_id:
                 ids.add(str(item_id))
-            keys.add(_item_key(item))\n            url_key = _url_key(item)\n            if url_key:\n                keys.add(url_key)
+            keys.add(_item_key(item))
+            url_key = _url_key(item)
+            if url_key:
+                keys.add(url_key)
         elif item:
             ids.add(str(item))
 
