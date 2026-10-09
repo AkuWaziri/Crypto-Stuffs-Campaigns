@@ -3,6 +3,7 @@ import json
 import os
 import re
 import hashlib
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 from tweetkit_x import TweetKit
 from tweetkit_x import constants as C
 from tweetkit_x.cookie import ct0_of
@@ -147,12 +148,43 @@ def _tweet_datetime(tweet):
     return None
 
 def _item_key(item):
-    """Return a stable content key so reposts/URL variants cannot bypass deduplication."""
-    text = " ".join(str(item.get("text", "")).lower().split())
-    url = str(item.get("url", "")).strip().rstrip("/")
-    if text:
-        return "text:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
-    return "url:" + hashlib.sha256(url.encode("utf-8")).hexdigest()
+    """Return a normalized content fingerprint robust to whitespace and tracking markup."""
+    text = str(item.get("text", "")).lower()
+    text = re.sub(r"https?://\\S+", " ", text)
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    text = " ".join(text.split())
+    # The leading phrase is usually the article/post headline. Using it avoids
+    # duplicates when RSS tags attach different snippets to the same article.
+    identity = text[:240] if text else ""
+    url = _canonical_url(item.get("url", ""))
+    value = identity or url
+    return ("text:" if identity else "url:") + hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _canonical_url(value):
+    """Remove tracking parameters so the same source URL has one stable identity."""
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    try:
+        parts = urlsplit(raw)
+        if not parts.scheme or not parts.netloc:
+            return raw.rstrip("/")
+        tracking = {"source", "ref", "ref_src", "fbclid", "gclid", "mc_cid", "mc_eid"}
+        query = [
+            (key, val) for key, val in parse_qsl(parts.query, keep_blank_values=True)
+            if not key.lower().startswith("utm_") and key.lower() not in tracking
+        ]
+        path = parts.path.rstrip("/") or "/"
+        return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), path, urlencode(query), ""))
+    except (TypeError, ValueError):
+        return raw.rstrip("/")
+
+
+def _url_key(item):
+    """Return a stable URL key independent of common analytics/tracking parameters."""
+    url = _canonical_url(item.get("url", ""))
+    return "url:" + hashlib.sha256(url.encode("utf-8")).hexdigest() if url else ""
 
 def _load_seen_ids():
     try:
@@ -180,7 +212,7 @@ def mark_sent(items):
             item_id = item.get("id")
             if item_id:
                 ids.add(str(item_id))
-            keys.add(_item_key(item))
+            keys.add(_item_key(item))\n            url_key = _url_key(item)\n            if url_key:\n                keys.add(url_key)
         elif item:
             ids.add(str(item))
 
