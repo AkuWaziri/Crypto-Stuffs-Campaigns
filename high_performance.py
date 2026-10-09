@@ -192,6 +192,14 @@ def _load_seen_ids():
             data = json.load(f)
         ids = {str(x) for x in data.get("sent_ids", []) if x}
         keys = {str(x) for x in data.get("sent_keys", []) if x}
+        # Migrate older state files: previously sent URLs were only stored inside
+        # source IDs, often with RSS tracking parameters attached.
+        for item_id in ids:
+            match = re.search(r"https?://\\S+", item_id)
+            if match:
+                normalized = _canonical_url(match.group(0))
+                if normalized:
+                    keys.add("url:" + hashlib.sha256(normalized.encode("utf-8")).hexdigest())
         return ids | keys
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return set()
