@@ -159,7 +159,7 @@ def build_post_recommendation(item):
     low = text.lower()
 
     if topic == "Security":
-        investigation = "Trace the affected contract/function and the exact permission or validation failure. Check the incident report, transaction trace, patch, and whether the same pattern exists elsewhere."
+        investigation = "Map the exact failure path through the affected contract/function and identify the permission or validation gap. Check the incident report, transaction trace, patch, and whether the same pattern exists elsewhere."
         evidence = "root cause, affected component, exploit/patch timestamps, and the transaction or code line proving the mechanism"
         thesis = f"Does {signal} reveal a reusable failure pattern, or is it specific to this implementation?"
         payoff = "show the failure path and one concrete check developers can add"
