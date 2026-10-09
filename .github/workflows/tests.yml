@@ -16,7 +16,9 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Compile project modules
         run: python -m py_compile classifier.py config.py discovery.py high_performance.py main.py telegram.py web_sources.py editorial.py
-      - name: Run smoke tests
+      - name: Run full test suite
+        run: pytest -q
+      - name: Run smoke test without API credentials
         run: |
           python - <<'PY'
           import main
@@ -35,7 +37,7 @@ jobs:
 
           # Keep CI smoke tests independent of API credentials and network calls.
           main.write_finding = lambda value: (
-              value["text"] + "\n\nSource: " + value["url"]
+              value["text"] + "\\n\\nSource: " + value["url"]
           )
           message = main._format_finding(item)
           assert message.startswith(item["text"])
