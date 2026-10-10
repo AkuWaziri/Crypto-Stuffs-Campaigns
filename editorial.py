@@ -8,7 +8,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from openai import OpenAI
 
-MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 DNA_PATH = Path(__file__).with_name("DNA.md")
 BASE_PROMPT = """You are the research analyst and editorial writer for a crypto-native findings feed.
 Write in the user's human writing DNA in DNA.md. The DNA controls voice, never facts.
