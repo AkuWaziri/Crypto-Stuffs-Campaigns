@@ -142,7 +142,7 @@ def main():
     print("feed=ai_written_crypto_findings")
     print("sources=x,web_news,medium,reddit,telegram,bluesky,farcaster")
     print("github_feed=disabled")
-    print("style=openai_human_dna_source_linked")
+    print("style=groq_analyst_findings_human_dna_source_linked")
     print(f"lookback_hours={LOOKBACK_HOURS}")
     print(f"max_per_run={MAX_FEED_ITEMS}")
 
@@ -174,9 +174,9 @@ def main():
         try:
             message = _format_finding(item)
         except Exception as exc:
-            # Preserve readable text and its direct source if AI writing is unavailable.
+            # Never degrade into raw reposts: skip when Groq cannot produce analysis.
             print(f"ai_writing_error={item['id']}: {exc}")
-            message = f"{clean_source_text(item['text'])}\n\nSource: {item['url']}"
+            continue
         try:
             delivered = send_message(message, dry_run=not args.telegram or args.test)
         except Exception as exc:
