@@ -18,7 +18,7 @@ jobs:
       X_AUTH_TOKEN: ${{ secrets.X_AUTH_TOKEN }}
       X_CT0: ${{ secrets.X_CT0 }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-      GROQ_MODEL: llama-3.3-70b-versatile
+      GROQ_MODEL: openai/gpt-oss-120b
       X_SEARCH_LIMIT: "20"
       MAX_FEED_ITEMS: "13"
       HIGH_PERFORMANCE_MAX_ITEMS: "20"
