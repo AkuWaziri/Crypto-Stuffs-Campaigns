@@ -8,23 +8,47 @@ import requests
 from config import USER_AGENT
 from high_performance import _load_seen_ids, _item_key
 
-MAX_DISCOVERY_ITEMS = 15
+MAX_DISCOVERY_ITEMS = 30
 HEADERS = {"User-Agent": USER_AGENT, "Accept": "application/rss+xml, application/json, */*"}
 QUERIES = (
-    "crypto developer tools GitHub",
-    "DeFi guide tutorial checklist",
-    "Solidity security research tools",
-    "crypto automation workflow",
-    "onchain analytics dashboard",
-    "crypto AI agent framework",
-    "web3 hackathon builder resources",
-    "crypto API open source",
-    "blockchain infrastructure release",
-    "stablecoin payments developer",
-    "crypto research findings",
-    "Ethereum developer guide",
+    '"crypto exploit" postmortem onchain analysis',
+    'DeFi protocol fees revenue TVL users transactions',
+    'stablecoin payments settlement volume adoption',
+    'crypto AI agents transactions deployment framework',
+    'NFT utility market activity volume protocol',
+    'crypto security vulnerability disclosure patch',
+    'blockchain protocol upgrade mainnet launch metrics',
+    'onchain wallet flows token supply accumulation',
+    'crypto bridge transfers exploit funds recovery',
+    'DePIN network usage revenue device growth',
+    'Ethereum L2 transaction fees throughput adoption',
+    'Solana protocol launch onchain activity metrics',
+    'crypto payment API SDK developer integration',
+    'account abstraction smart wallet usage data',
+    'real world assets tokenized value onchain',
+    'crypto protocol governance tokenomics change',
+    'zero knowledge proof infrastructure development',
+    'DeFi liquidation lending borrow utilization',
+    'stablecoin mint burn supply change',
+    'crypto infrastructure product release builder tools',
+    'NFT smart contract royalty marketplace change',
+    'crypto exploit funds movement wallet analysis',
+    'blockchain network active addresses transactions growth',
+    'crypto project user growth retention metrics',
+    'web3 product build technical demo launch',
+    'crypto payments merchant integration settlement',
+    'cross chain bridge liquidity flows',
+    'crypto hack bounty bug fix security audit',
 )
-USEFUL = re.compile(r"guide|tutorial|how to|step.by.step|checklist|tool|github|open.source|repo|workflow|automation|prompt|framework|sdk|api|dashboard|research|finding|security|hackathon|build|builder|launch|release|testnet|onchain|solidity|smart contract|defi|wallet|bridge|agent|infrastructure|payments|stablecoin|protocol|data|free", re.I)
+USEFUL = re.compile(
+    r'exploit|hack|postmortem|vulnerab|security|on.chain|wallet|transaction|'
+    r'volume|fees|revenue|tvl|payment|stablecoin|agent|ai|nft|defi|launch|'
+    r'release|upgrade|mainnet|testnet|adoption|users|growth|liquidity|bridge|'
+    r'settlement|protocol|infrastructure|developer|sdk|api|open.source|build|'
+    r'builder|tokeniz|governance|metrics|funds|recovery|activity|throughput|'
+    r'account abstraction|proof|marketplace|mint|burn', re.I,
+)
+
 
 def _date(value):
     if not value:
@@ -39,11 +63,14 @@ def _date(value):
         except (TypeError, ValueError, OverflowError):
             return None
 
+
 def _record(source, author, title, description, url, created):
     text = " ".join(f"{title} {description}".split())
     return {"id": f"{source}:{url}", "source": source, "author": author or source,
-            "text": text[:900], "url": url, "created_at": created.isoformat(),
-            "niche": "guides, tools and builds", "tier": "CRYPTO ALPHA", "views": 0}
+            "text": text[:5000], "url": url, "created_at": created.isoformat(),
+            "niche": "crypto research, incidents, metrics and builds",
+            "tier": "RESEARCH FINDING", "views": 0}
+
 
 def _google_news(cutoff):
     found = []
@@ -59,12 +86,12 @@ def _google_news(cutoff):
                 created = _date(node.findtext("pubDate", ""))
                 desc_node = node.find("description")
                 description = "".join(desc_node.itertext()) if desc_node is not None else ""
-                text = f"{title} {description}"
-                if link and created and created >= cutoff and USEFUL.search(text):
+                if link and created and created >= cutoff and USEFUL.search(f"{title} {description}"):
                     found.append(_record("web", "web discovery", title, description, link, created))
         except Exception as exc:
             print(f"alpha_web_error={query}: {exc}")
     return found
+
 
 def search_crypto_alpha():
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
@@ -72,13 +99,25 @@ def search_crypto_alpha():
     candidates = _google_news(cutoff)
     unique = {}
     for item in candidates:
-        if item["id"] in sent or _item_key(item) in sent or not item["url"]:
-            continue
-        unique[item["url"]] = item
+        if item["id"] not in sent and _item_key(item) not in sent and item["url"]:
+            unique[item["url"]] = item
+
     def rank(item):
         text = item["text"].lower()
-        score = sum(2 for term in ("github", "open source", "tutorial", "checklist", "workflow", "tool", "guide", "research", "security", "dashboard", "api", "framework") if term in text)
-        return (score, item["created_at"])
+        terms = (
+            "exploit", "postmortem", "on-chain", "wallet", "transaction", "volume",
+            "fees", "revenue", "tvl", "payment", "stablecoin", "agent", "nft", "defi",
+            "launch", "release", "upgrade", "adoption", "users", "growth", "liquidity",
+            "bridge", "settlement", "metrics", "funds", "recovery", "security", "audit",
+            "mainnet", "sdk", "api",
+        )
+        score = sum(3 for term in terms if term in text)
+        if re.search(r'\d[\d,.]*\s?(%|million|billion|thousand|usd|\$|eth|btc)', text):
+            score += 4
+        if len(text) > 350:
+            score += 2
+        return score, item["created_at"]
+
     results = sorted(unique.values(), key=rank, reverse=True)
     print(f"crypto_web_candidates={len(candidates)}")
     print(f"crypto_web_unique_new={len(results)}")
