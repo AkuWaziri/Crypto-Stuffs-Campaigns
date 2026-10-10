@@ -2,40 +2,51 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from html import unescape
 from urllib.parse import quote, urljoin
-import re
 import xml.etree.ElementTree as ET
 
 import requests
 from bs4 import BeautifulSoup
 
-from config import (
-    USER_AGENT,
-    REDDIT_SUBREDDITS,
-    MEDIUM_TAGS,
-    TELEGRAM_CHANNELS,
-    BLUESKY_QUERIES,
-)
+from config import USER_AGENT, REDDIT_SUBREDDITS, MEDIUM_TAGS, TELEGRAM_CHANNELS, BLUESKY_QUERIES
 
+# Research-led searches rather than meme/satire discovery.
 CONTENT_QUERIES = (
-    "crypto satire", "crypto parody", "crypto irony", "funny crypto",
-    "funny web3", "crypto joke", "crypto jokes", "crypto comedy",
-    "crypto meme", "crypto memes", "web3 meme", "web3 memes",
-    "crypto comic", "crypto comics", "web3 comic", "crypto cartoon",
-    "crypto shitpost", "crypto shitposts", "crypto shitposting",
-    "web3 shitpost", "crypto humor", "web3 humor", "crypto be like",
-    "web3 be like", "crypto irl", "crypto in real life", "crypto moment",
-    "crypto moments", "crypto situation", "crypto situations",
+    "crypto exploit postmortem root cause funds recovered",
+    "DeFi protocol exploit onchain analysis",
+    "smart contract vulnerability security disclosure",
+    "onchain wallet flows unusual accumulation",
+    "stablecoin payment volume adoption settlement",
+    "crypto payments merchant integration",
+    "AI agents onchain transactions crypto",
+    "crypto AI agent framework deployment",
+    "DeFi TVL fees revenue protocol metrics",
+    "DEX volume liquidity changes onchain",
+    "bridge exploit cross chain transfers",
+    "NFT market volume royalties utility launch",
+    "crypto protocol upgrade technical release",
+    "blockchain developer tools SDK API release",
+    "open source crypto build demo",
+    "testnet mainnet launch ecosystem adoption",
+    "account abstraction wallet adoption",
+    "real world assets tokenization onchain data",
+    "DePIN network usage revenue devices",
+    "L2 transaction fees throughput activity",
+    "crypto governance proposal token economics",
+    "crypto security incident timeline",
+    "crypto project product usage numbers",
+    "stablecoin supply mint burn flow analysis",
+    "crypto funding product launch technical details",
+    "Solana onchain activity protocol launch",
+    "Ethereum ecosystem development metrics",
+    "zero knowledge proof infrastructure release",
+    "crypto protocol fees users transactions",
+    "blockchain payments settlement infrastructure",
 )
 
-
-HEADERS = {
-    "User-Agent": USER_AGENT,
-    "Accept": "text/html,application/xhtml+xml,application/json,application/xml",
-}
+HEADERS = {"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml,application/json,application/xml"}
 
 
 def _clean(text):
-    """Convert scraped HTML/RSS text to plain, human-readable text."""
     raw = unescape(str(text or ""))
     soup = BeautifulSoup(raw, "html.parser")
     for node in soup(["script", "style", "noscript"]):
@@ -48,15 +59,9 @@ def _now():
 
 
 def _item(source, author, text, url, created_at=None, crypto_query=False):
-    return {
-        "id": f"{source}:{url or text[:100]}",
-        "author": author or source,
-        "text": _clean(text),
-        "url": url,
-        "created_at": created_at or _now(),
-        "source": source,
-        "crypto_query": crypto_query,
-    }
+    return {"id": f"{source}:{url or text[:100]}", "author": author or source,
+            "text": _clean(text), "url": url, "created_at": created_at or _now(),
+            "source": source, "crypto_query": crypto_query}
 
 
 def _parse_date(value):
@@ -79,7 +84,6 @@ def _rss(url, source):
         link = _clean(node.findtext("link", ""))
         pub = _parse_date(node.findtext("pubDate", ""))
         author = node.findtext("{http://purl.org/dc/elements/1.1/}creator", "") or source
-        # Keep title and description readable; remove duplicates if RSS repeats the title.
         text = title
         if description and description.casefold() not in title.casefold():
             text = f"{title}. {description}" if title else description
@@ -91,10 +95,7 @@ def _reddit():
     items = []
     for subreddit in REDDIT_SUBREDDITS:
         for query in CONTENT_QUERIES:
-            url = (
-                f"https://www.reddit.com/r/{quote(subreddit)}/search.json"
-                f"?q={quote(query)}&restrict_sr=1&sort=new&t=month&limit=25"
-            )
+            url = f"https://www.reddit.com/r/{quote(subreddit)}/search.json?q={quote(query)}&restrict_sr=1&sort=new&t=month&limit=15"
             try:
                 response = requests.get(url, headers=HEADERS, timeout=20)
                 response.raise_for_status()
@@ -104,18 +105,10 @@ def _reddit():
                     permalink = post.get("permalink", "")
                     if not permalink:
                         continue
-                    created = (
-                        datetime.fromtimestamp(post["created_utc"], timezone.utc).isoformat()
-                        if post.get("created_utc") else None
-                    )
-                    items.append(_item(
-                        "reddit",
-                        post.get("author") or subreddit,
-                        f"{post.get('title', '')} {post.get('selftext', '')}",
-                        urljoin("https://www.reddit.com", permalink),
-                        created,
-                        True,
-                    ))
+                    created = datetime.fromtimestamp(post["created_utc"], timezone.utc).isoformat() if post.get("created_utc") else None
+                    items.append(_item("reddit", post.get("author") or subreddit,
+                                       f"{post.get('title', '')} {post.get('selftext', '')}",
+                                       urljoin("https://www.reddit.com", permalink), created, True))
             except Exception as exc:
                 print(f"reddit_error={subreddit}:{query}: {exc}")
     return items
@@ -149,9 +142,8 @@ def _telegram():
 
 def _farcaster():
     items = []
-    queries = CONTENT_QUERIES
-    for query in queries:
-        url = "https://api.warpcast.com/v2/search-casts?q=" + quote(query) + "&limit=50"
+    for query in CONTENT_QUERIES:
+        url = "https://api.warpcast.com/v2/search-casts?q=" + quote(query) + "&limit=30"
         try:
             response = requests.get(url, headers=HEADERS, timeout=20)
             response.raise_for_status()
@@ -177,16 +169,9 @@ def _farcaster():
 def _bluesky():
     items = []
     for query in BLUESKY_QUERIES:
-        url = (
-            "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts"
-            "?q=" + quote(query) + "&limit=50"
-        )
+        url = "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=" + quote(query) + "&limit=30"
         try:
-            response = requests.get(
-                url,
-                headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
-                timeout=20,
-            )
+            response = requests.get(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, timeout=20)
             response.raise_for_status()
             for post in response.json().get("posts", []):
                 record = post.get("record", {})
@@ -194,10 +179,7 @@ def _bluesky():
                 text = record.get("text", "")
                 uri = post.get("uri", "")
                 rkey = uri.rsplit("/", 1)[-1]
-                url_out = f"https://bsky.app/profile/{author}/post/{rkey}"
-                items.append(_item(
-                    "bluesky", author, text, url_out, record.get("createdAt"), True
-                ))
+                items.append(_item("bluesky", author, text, f"https://bsky.app/profile/{author}/post/{rkey}", record.get("createdAt"), True))
         except Exception as exc:
             print(f"bluesky_error={query}: {exc}")
     return items
@@ -205,42 +187,34 @@ def _bluesky():
 
 def fetch_public_content():
     items = []
-
     for tag in MEDIUM_TAGS:
-        url = f"https://medium.com/feed/tag/{quote(tag)}"
         try:
-            found = _rss(url, "medium")
+            found = _rss(f"https://medium.com/feed/tag/{quote(tag)}", "medium")
             items.extend(found)
             print(f"medium_source={tag} items={len(found)}")
         except Exception as exc:
             print(f"medium_error={tag}: {exc}")
-
     if REDDIT_SUBREDDITS:
         found = _reddit()
         items.extend(found)
         print(f"reddit_items={len(found)}")
-
     if TELEGRAM_CHANNELS:
         found = _telegram()
         items.extend(found)
         print(f"telegram_items={len(found)}")
-
     if BLUESKY_QUERIES:
         found = _bluesky()
         items.extend(found)
         print(f"bluesky_items={len(found)}")
-
     found = _farcaster()
     items.extend(found)
     print(f"farcaster_items={len(found)}")
-
     unique, seen = [], set()
     for item in items:
         key = item.get("url") or item.get("id")
-        if not key or key in seen:
-            continue
-        seen.add(key)
-        unique.append(item)
+        if key and key not in seen:
+            seen.add(key)
+            unique.append(item)
     return unique
 
 
