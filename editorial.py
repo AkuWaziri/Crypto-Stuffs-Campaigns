@@ -136,7 +136,10 @@ def write_finding(item):
 
     source_text = clean_source_text(item.get("text"))
     article_text = _fetch_article_text(url)
+    is_skill_lane = item.get("content_lane") == "skill_showcase"
     source_material = {
+        "content_lane": item.get("content_lane", "crypto_findings"),
+        "skill_profile": item.get("skill_profile", ""),
         "source": item.get("source", "unknown"),
         "author": item.get("author", "unknown"),
         "published_or_seen_at": item.get("created_at", "unknown"),
@@ -147,6 +150,45 @@ def write_finding(item):
         "fetched_article_text": article_text,
         "original_url": url,
     }
+    if is_skill_lane:
+        task_prompt = (
+            "You are a professional content strategist helping the owner publish original public "
+            "posts that demonstrate practical thinking across these skill lenses: motion video "
+            "creator for Web3 protocols; Web3 compliance analysis; ethical bug-bounty and smart-contract "
+            "security research; referral/points campaign design; and protocol reputation/community "
+            "management. The skill profile for this source is "
+            + str(item.get("skill_profile") or "best fit") + ".\\n\\n"
+            "Research the supplied article/page and turn its concrete details into a useful, "
+            "publish-ready post in the owner's own editorial voice. Do not merely summarize it. "
+            "Choose a credible angle such as a motion-video concept that explains a real protocol "
+            "mechanism; a compliance risk/control checklist grounded in official guidance; a "
+            "defensive bug-bounty hypothesis or scope question; a points/referral campaign mechanic "
+            "with anti-Sybil and measurable incentive design; or a reputation strategy tied to real "
+            "contributor/governance behavior. Include a specific observation and a suggested post "
+            "or practical framework the owner could publish. Make it feel personal and original, "
+            "not like a job advert or generic list of services.\\n"
+            "Never invent that the owner audited, built, advised, represented, or worked for a "
+            "project. Do not claim professional qualifications or legal authority. For compliance, "
+            "explain issues as general research, not legal advice. For bug bounty, keep guidance "
+            "authorized, defensive, and within a program's scope. Never fabricate metrics, quotes, "
+            "product behavior, project commitments, or a personal case study. If the source has no "
+            "substantive detail that can support a useful skill-led post, return exactly SKIP_ITEM. "
+            "Prefer official docs, whitepapers, research, technical blogs and primary sources. "
+            "Distinguish source facts from your suggested idea. Keep it concise and specific, normally "
+            "3–6 sentences. End with the exact original URL on a separate line: Source: <URL>.\\n\\n"
+        )
+    else:
+        task_prompt = (
+            "Act as a selective crypto researcher and editor. First decide whether this contains "
+            "a real, specific finding worth a crypto-native reader's attention. Use the full page "
+            "text if available. Do not force a crypto angle. If it is generic speculation, marketing, "
+            "a thin listicle, or only supports commentary about missing evidence, return exactly "
+            "SKIP_ITEM. Otherwise write the most specific evidence-backed finding and explain its "
+            "mechanism or practical significance. Preserve uncertainty; do not pretend you "
+            "independently verified the page or any on-chain claim. End with the exact original URL "
+            "on one Source line.\\n\\n"
+        )
+
     response = _client().chat.completions.create(
         model=MODEL,
         temperature=0.35,
@@ -154,18 +196,7 @@ def write_finding(item):
             {"role": "system", "content": _system_prompt()},
             {
                 "role": "user",
-                "content": (
-                    "Act as a selective crypto researcher and editor. First decide whether this "
-                    "contains a real, specific finding worth a crypto-native reader's attention. "
-                    "Use the full page text if available. Do not force a crypto angle. If it is "
-                    "generic speculation, marketing, a thin listicle, or only supports commentary "
-                    "about missing evidence, return exactly SKIP_ITEM. Otherwise write the most "
-                    "specific evidence-backed finding and explain its mechanism or practical "
-                    "significance. Preserve uncertainty; do not pretend you independently verified "
-                    "the page or any on-chain claim. End with the exact original URL on one Source "
-                    "line.\n\n"
-                    + json.dumps(source_material, ensure_ascii=False)
-                ),
+                "content": task_prompt + json.dumps(source_material, ensure_ascii=False),
             },
         ],
     )
