@@ -1,57 +1,118 @@
-"""Groq-powered editorial layer for original, evidence-led crypto findings."""
+"""Groq-powered research and editorial gate for original crypto findings."""
 import json
 import os
 from functools import lru_cache
 from html import unescape
 from pathlib import Path
+from urllib.parse import urlparse
 
+import requests
 from bs4 import BeautifulSoup
 from openai import OpenAI
 
 MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 DNA_PATH = Path(__file__).with_name("DNA.md")
-BASE_PROMPT = """You are the research analyst and editorial writer for a crypto-native findings feed.
-Write in the user's human writing DNA in DNA.md. The DNA controls voice, never facts.
+SKIP_MARKER = "SKIP_ITEM"
+ARTICLE_TIMEOUT_SECONDS = 8
+ARTICLE_TEXT_LIMIT = 12000
 
-MISSION
-Turn source material into an original finding with analysis, not a repost, headline rewrite, generic news summary, or list of links. The reader should learn what happened, what the evidence actually says, what is unusual, and why it matters across crypto: exploits and security, DeFi, NFTs, AI agents, stablecoins/payments, protocols, wallets, infrastructure, developer tools, launches, adoption, on-chain activity, ecosystem progress, and useful builds.
+BASE_PROMPT = """You are the research editor, source investigator, and crypto-native analyst for a high-signal findings feed. Your job is to FIND the actual story, not make every candidate sound interesting.
 
-ANALYST METHOD
-- Lead with the most specific discovery or signal, not the publisher's headline.
-- Extract and connect concrete details: dollar values, token amounts, percentages, user/wallet counts, dates, transaction sequences, fees, TVL, volume, throughput, adoption, before/after comparisons, and implementation details when supplied.
-- Explain the mechanism and implication. Make a clear analytical observation about what the evidence suggests, what changed, what looks unusual, who may be affected, or what a builder should investigate.
-- Do arithmetic only when inputs are present and the calculation is straightforward; label derived values as estimates/calculations. Never manufacture missing metrics to make a post sound analytical.
-- For on-chain or exploit claims, distinguish reported claims from demonstrated evidence. Do not infer wallet ownership, motive, causation, exploit mechanics, or connections unless the supplied material supports them.
-- If the source contains a claim without supporting data, say so plainly and explain what would need checking. Do not dress thin material up as a confirmed finding.
-- Treat X view counts as engagement metadata, not proof that a claim is true or important.
-- Use source text and metadata only. You have not independently opened the URL or verified the underlying data. Do not claim otherwise.
-- Do not merely restate a press release. Explain the practical consequence or trade-off in your own words.
-- Prefer a compact mini-analysis of 3–6 sentences. Use a natural headline only when it adds clarity; vary structure so the feed does not look templated.
-- Use clear natural English; translate non-English text. Preserve exact names, tickers, figures, caveats, and technical terms.
-- No generic filler, fake hype, corporate language, forced slang, decorative emojis, HTML/XML, RSS boilerplate, or raw scraped fragments.
-- End with exactly one separate line: Source: <the exact original URL>.
-Return only the finished Telegram-ready finding."""
+EDITORIAL GATE — APPLY THIS BEFORE WRITING
+Reject a candidate by returning exactly SKIP_ITEM when, after reading the supplied source material:
+- it is only a vague prediction, opinion, listicle, promotional claim, or recycled headline;
+- it gives no concrete event, technical mechanism, data point, implementation detail, primary-source lead, or genuinely useful explanation;
+- its crypto connection is forced or merely hypothetical;
+- the only possible analysis is saying that the source lacks evidence.
+Do not rescue weak content with polished speculation. A smaller feed of real discoveries is better than a full feed of filler.
 
+WHAT QUALIFIES
+Prioritize specific crypto discoveries across exploits/security, on-chain wallet or fund movements, DeFi mechanics, stablecoins/payments, protocol changes, AI agents, NFTs, infrastructure, developer tools, launches, governance, adoption, and unusual market or ecosystem behavior. Strong leads include transaction hashes, wallet addresses, measurable changes, code/PRs, postmortems, technical docs, benchmarks, specific rollout details, reproducible demos, and first-hand builder reports. A useful technical explanation can qualify without numbers if it contains real mechanism-level detail.
+
+RESEARCH AND EVIDENCE RULES
+- Use the supplied full-page text when available, not just its headline or RSS snippet.
+- Find the most specific new fact. Explain the mechanism, sequence, contradiction, consequence, or practical builder insight.
+- Never invent metrics, wallet links, causality, motives, security findings, or facts not in the material.
+- Do not imply you independently verified a URL, transaction, benchmark, or allegation. Treat unverified claims as claims.
+- Do not infer a broad market trend from one article. Do not attach generic staking, yield, AI, or DeFi implications unless the evidence connects them.
+- If the source is thin but points to a concrete lead, only publish if that lead itself is specific and useful. Otherwise return SKIP_ITEM.
+- Do not turn every item into a warning that data is missing. If there is no finding, skip it.
+
+WRITING STYLE
+Follow the user's writing DNA in DNA.md. Lead with the finding, not a generic intro. Make it feel observed and investigative: specific detail → how it works / what changed → why the detail is surprising or useful. Use natural crypto-native English, concise and varied. Usually 2–5 sentences. Avoid generic AI/corporate language, fake hype, repetitive templates, forced slang, decorative emojis, HTML, and RSS boilerplate. A short headline is fine when useful, but vary structure.
+Return only the finished Telegram-ready finding, or exactly SKIP_ITEM if it fails the editorial gate.
+The finished finding must end with exactly one separate line: Source: <the exact original URL>."""
 
 def clean_source_text(value):
-    """Strip HTML/XML markup and decode entities before editorial generation or fallback delivery."""
+    """Strip HTML/XML markup and decode entities before editorial generation."""
     raw = unescape(str(value or ""))
     soup = BeautifulSoup(raw, "html.parser")
-    for node in soup(["script", "style", "noscript"]):
+    for node in soup(["script", "style", "noscript", "svg"]):
         node.decompose()
     return " ".join(soup.get_text(" ", strip=True).split())
 
 
+def _fetch_article_text(url):
+    """Fetch readable publisher text so RSS titles/snippets are not the only evidence."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            return ""
+        if parsed.hostname.lower() in {"localhost", "127.0.0.1", "::1"}:
+            return ""
+        response = requests.get(
+            url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (compatible; CryptoStuffsResearch/1.0)",
+                "Accept": "text/html,application/xhtml+xml",
+            },
+            timeout=ARTICLE_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        content_type = response.headers.get("content-type", "").lower()
+        if "html" not in content_type:
+            return ""
+        soup = BeautifulSoup(response.text, "html.parser")
+        for node in soup(["script", "style", "noscript", "nav", "footer", "header", "svg", "form"]):
+            node.decompose()
+
+        candidates = []
+        for selector in (
+            "article",
+            '[itemprop="articleBody"]',
+            "main",
+            ".article-content",
+            ".post-content",
+            ".postArticle-content",
+            ".entry-content",
+        ):
+            for node in soup.select(selector):
+                text = clean_source_text(str(node))
+                if len(text) > len(" ".join(candidates)):
+                    candidates.append(text)
+        if not candidates:
+            body = soup.body or soup
+            candidates.append(clean_source_text(str(body)))
+
+        text = max(candidates, key=len, default="")
+        # A short page title/consent screen is not useful additional evidence.
+        return text[:ARTICLE_TEXT_LIMIT] if len(text) >= 500 else ""
+    except Exception as exc:
+        print(f"article_fetch_skipped={url}: {type(exc).__name__}")
+        return ""
+
+
 @lru_cache(maxsize=1)
 def _system_prompt():
-    """Load the editable human writing DNA file, with a safe fallback."""
+    """Load editable human writing DNA with a safe fallback."""
     try:
         dna = DNA_PATH.read_text(encoding="utf-8").strip()
     except OSError:
         dna = (
-            "Lead with the surprising, specific finding. Explain the mechanism and numbers, "
-            "then make a grounded observation. Use natural crypto-native phrasing. Avoid "
-            "generic AI language, forced slang, repetition and unsupported claims."
+            "Lead with a specific discovery. Explain the mechanism and concrete details, "
+            "then make a grounded observation. Avoid generic AI language, speculation, "
+            "repetition, and unsupported claims."
         )
     return f"{BASE_PROMPT}\n\n--- HUMAN WRITING DNA ---\n{dna}"
 
@@ -65,11 +126,16 @@ def _client():
 
 
 def write_finding(item):
-    """Write an original, evidence-conscious analyst finding and preserve its source URL."""
+    """Investigate the linked page, reject weak leads, and write evidence-led findings.
+
+    Returns None when the item does not pass the editorial gate.
+    """
     url = str(item.get("url") or "").strip()
     if not url:
         raise ValueError("Cannot write a finding without a source URL")
 
+    source_text = clean_source_text(item.get("text"))
+    article_text = _fetch_article_text(url)
     source_material = {
         "source": item.get("source", "unknown"),
         "author": item.get("author", "unknown"),
@@ -77,24 +143,27 @@ def write_finding(item):
         "views": item.get("views"),
         "category_or_niche": item.get("niche", ""),
         "tier": item.get("tier", ""),
-        "source_text": clean_source_text(item.get("text"))[:9000],
+        "feed_snippet_or_post": source_text[:6000],
+        "fetched_article_text": article_text,
         "original_url": url,
     }
     response = _client().chat.completions.create(
         model=MODEL,
-        temperature=0.45,
+        temperature=0.35,
         messages=[
             {"role": "system", "content": _system_prompt()},
             {
                 "role": "user",
                 "content": (
-                    "Produce an original crypto research finding from this evidence. Analyze the "
-                    "specific mechanism, numbers, sequence, change, risk, or builder implication "
-                    "that the evidence supports. This must add insight beyond paraphrasing the "
-                    "headline/post. If there are no useful numbers, do not invent any: explain "
-                    "the concrete technical or ecosystem signal and its limits. Distinguish "
-                    "reported claims from verified facts. Do not claim to have opened the source. "
-                    "Finish with the exact original URL on one Source line.\n\n"
+                    "Act as a selective crypto researcher and editor. First decide whether this "
+                    "contains a real, specific finding worth a crypto-native reader's attention. "
+                    "Use the full page text if available. Do not force a crypto angle. If it is "
+                    "generic speculation, marketing, a thin listicle, or only supports commentary "
+                    "about missing evidence, return exactly SKIP_ITEM. Otherwise write the most "
+                    "specific evidence-backed finding and explain its mechanism or practical "
+                    "significance. Preserve uncertainty; do not pretend you independently verified "
+                    "the page or any on-chain claim. End with the exact original URL on one Source "
+                    "line.\n\n"
                     + json.dumps(source_material, ensure_ascii=False)
                 ),
             },
@@ -103,9 +172,12 @@ def write_finding(item):
     text = clean_source_text(response.choices[0].message.content or "")
     if not text:
         raise RuntimeError("Groq returned an empty finding")
-    # Enforce the exact source URL once, even if the model omitted or altered it.
+    if text.strip().upper() == SKIP_MARKER or text.strip().upper().startswith(SKIP_MARKER + " "):
+        return None
+
+    # Enforce the exact original URL once, even if the model omitted or altered it.
     text = text.replace(url, "").strip()
     text = text.removesuffix("Source:").strip()
-    if not text:
-        raise RuntimeError("Groq returned no usable finding text")
+    if not text or text.strip().upper() == SKIP_MARKER:
+        return None
     return f"{text}\n\nSource: {url}"
