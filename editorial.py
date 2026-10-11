@@ -39,7 +39,7 @@ RESEARCH AND EVIDENCE RULES
 - Do not turn every item into a warning that data is missing. If there is no finding, skip it.
 
 WRITING STYLE
-Follow the user's writing DNA in DNA.md. Lead with the finding, not a generic intro. Make it feel observed and investigative: specific detail → how it works / what changed → why the detail is surprising or useful. Use natural crypto-native English, concise and varied. Usually 2–5 sentences. Avoid generic AI/corporate language, fake hype, repetitive templates, forced slang, decorative emojis, HTML, and RSS boilerplate. A short headline is fine when useful, but vary structure.
+Follow the user's human writing DNA in DNA.md. Lead with the finding, not a generic intro. Make it feel observed and investigative: specific detail → how it works / what changed → why the detail is surprising or useful. Use natural crypto-native English, concise and varied. Usually 2–5 sentences. Avoid generic AI/corporate language, fake hype, repetitive templates, forced slang, decorative emojis, HTML, and RSS boilerplate. A short headline is fine when useful, but vary structure.
 Return only the finished Telegram-ready finding, or exactly SKIP_ITEM if it fails the editorial gate.
 The finished finding must end with exactly one separate line: Source: <the exact original URL>."""
 
