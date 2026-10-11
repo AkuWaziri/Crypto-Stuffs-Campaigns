@@ -15,18 +15,22 @@ def item(source, number, *, text=None, url=None, views=0):
     }
 
 
-def test_selection_balances_social_and_web_and_excludes_github(monkeypatch):
+def test_selection_reserves_skill_research_slots_and_excludes_github(monkeypatch):
     monkeypatch.setattr(main, "_load_seen_ids", lambda: set())
     social = [item("farcaster", n) for n in range(25)]
     web = [item("web", n) for n in range(10)]
+    skill = [item("skill_research", n) for n in range(5)]
+    for entry in skill:
+        entry["content_lane"] = "skill_showcase"
+        entry["skill_profile"] = "points_campaign_designer"
     github = [item("github", n) for n in range(5)]
 
-    selected = main._unique_findings([[], web + github, social], 30)
+    selected = main._unique_findings([[], web + github, skill, social], 13)
 
-    assert len(selected) == 30
+    assert len(selected) == 13
     assert all(x["source"] != "github" for x in selected)
-    assert sum(x["source"] in main.SOCIAL_SOURCES for x in selected) == 20
-    assert sum(x["source"] == "web" for x in selected) == 10
+    assert sum(x["source"] == "skill_research" for x in selected) == 2
+    assert sum(x["source"] == "web" for x in selected) >= 1
 
 
 def test_selection_prefers_x_and_deduplicates_tracking_url_variants(monkeypatch):
