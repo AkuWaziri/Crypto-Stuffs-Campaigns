@@ -122,13 +122,20 @@ def _unique_findings(groups, limit):
 
     # At the current 13-item cap, target a mix of up to 6 high-performing X
     # findings, 2 other social posts, 3 web findings and 2 skill-led research
-    # leads. Unused slots can be filled from any remaining eligible source.
+    # leads. Skill research is capped at two even when other lanes are sparse.
     take(x_items, min(6, limit))
     take(other_social, min(2, max(0, limit - len(selected))))
     take(web_items, min(3, max(0, limit - len(selected))))
     take(skill_items, min(2, max(0, limit - len(selected))))
     take(other_items, limit - len(selected))
-    take(sorted(candidates, key=_sort_key, reverse=True), limit - len(selected))
+    # Fill any remaining slots from non-skill lanes only. This prevents the
+    # fallback from silently bypassing the dedicated skill-research quota.
+    remaining_non_skill = sorted(
+        (x for x in candidates if x.get("source") not in SKILL_SOURCES),
+        key=_sort_key,
+        reverse=True,
+    )
+    take(remaining_non_skill, limit - len(selected))
     return selected
 
 
