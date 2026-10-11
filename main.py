@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 os.environ.setdefault("VIRAL_SEEN_STATE_FILE", ".campaign_state.json")
 
 from config import HIGH_PERFORMANCE_MAX_ITEMS, LOOKBACK_HOURS, MAX_FEED_ITEMS
-from discovery import search_crypto_alpha
+from discovery import search_crypto_alpha, search_skill_showcase
 from editorial import clean_source_text, write_finding
 from high_performance import _item_key, _url_key, _load_seen_ids, mark_sent, search_high_performing_x
 from telegram import send_message
@@ -14,6 +14,7 @@ from web_sources import fetch_public_content
 
 SOCIAL_SOURCES = {"x_high_performance", "x_social", "medium", "reddit", "telegram", "bluesky", "farcaster"}
 WEB_SOURCES = {"web"}
+SKILL_SOURCES = {"skill_research"}
 
 
 def _created_datetime(value):
@@ -79,8 +80,8 @@ def _unique_findings(groups, limit):
                 local_urls.add(url_key)
             candidates.append(item)
 
-    # Prefer eligible X posts first, then other social platforms. This prevents
-    # fresh news/RSS results from crowding social findings out of every feed.
+    # Keep existing social/web findings while reserving a small, separate lane
+    # for skill-showcase research so it cannot be crowded out by X volume.
     x_items = sorted(
         (x for x in candidates if x.get("source") == "x_high_performance"),
         key=lambda x: (int(x.get("views") or 0), _sort_key(x)),
@@ -96,8 +97,13 @@ def _unique_findings(groups, limit):
         key=_sort_key,
         reverse=True,
     )
+    skill_items = sorted(
+        (x for x in candidates if x.get("source") in SKILL_SOURCES),
+        key=_sort_key,
+        reverse=True,
+    )
     other_items = sorted(
-        (x for x in candidates if x.get("source") not in SOCIAL_SOURCES | WEB_SOURCES),
+        (x for x in candidates if x.get("source") not in SOCIAL_SOURCES | WEB_SOURCES | SKILL_SOURCES),
         key=_sort_key,
         reverse=True,
     )
@@ -114,13 +120,13 @@ def _unique_findings(groups, limit):
             selected_ids.add(item["id"])
             count -= 1
 
-    social_quota = min(20, limit)
-    take(x_items, social_quota)
-    take(other_social, social_quota - len(selected))
-    # Keep a meaningful web/research lane without letting it displace social posts.
-    take(web_items, min(10, max(0, limit - len(selected))))
-    # If one source is unavailable, fill the remaining places from any other
-    # eligible source, still excluding GitHub and already-seen findings.
+    # At the current 13-item cap, target a mix of up to 6 high-performing X
+    # findings, 2 other social posts, 3 web findings and 2 skill-led research
+    # leads. Unused slots can be filled from any remaining eligible source.
+    take(x_items, min(6, limit))
+    take(other_social, min(2, max(0, limit - len(selected))))
+    take(web_items, min(3, max(0, limit - len(selected))))
+    take(skill_items, min(2, max(0, limit - len(selected))))
     take(other_items, limit - len(selected))
     take(sorted(candidates, key=_sort_key, reverse=True), limit - len(selected))
     return selected
@@ -140,9 +146,9 @@ def main():
     print("CRYPTO-STUFFS")
     print("mode=read-only")
     print("feed=ai_written_crypto_findings")
-    print("sources=x,web_news,medium,reddit,telegram,bluesky,farcaster")
+    print("sources=x,web_news,docs_whitepapers_research_blogs,medium,reddit,telegram,bluesky,farcaster")
     print("github_feed=disabled")
-    print("style=groq_analyst_findings_human_dna_source_linked")
+    print("style=groq_analyst_findings_and_skill_showcase_posts_human_dna_source_linked")
     print(f"lookback_hours={LOOKBACK_HOURS}")
     print(f"max_per_run={MAX_FEED_ITEMS}")
 
@@ -150,6 +156,7 @@ def main():
     for label, fetcher in (
         ("x", search_high_performing_x),
         ("web_research", search_crypto_alpha),
+        ("skill_showcase_research", search_skill_showcase),
         ("public_social", fetch_public_content),
     ):
         try:
