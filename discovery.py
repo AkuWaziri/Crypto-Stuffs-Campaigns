@@ -122,3 +122,81 @@ def search_crypto_alpha():
     print(f"crypto_web_candidates={len(candidates)}")
     print(f"crypto_web_unique_new={len(results)}")
     return results[:MAX_DISCOVERY_ITEMS]
+
+
+# A separate professional-positioning research lane. These are not generic job
+# listings: they seek technical evidence and product mechanics that can become
+# original, useful public posts demonstrating the owner's skill lenses.
+SKILL_RESEARCH_QUERIES = (
+    ("motion_video_creator", '"web3 protocol" product launch visual explainer video design brief OR blog'),
+    ("motion_video_creator", 'crypto protocol docs mechanism product launch visual storytelling motion design'),
+    ("web3_compliance", 'site:esma.europa.eu crypto assets MiCA guidance stablecoin compliance'),
+    ("web3_compliance", 'crypto compliance travel rule sanctions stablecoin official guidance analysis'),
+    ("web3_compliance", 'web3 compliance protocol risk controls regulatory blog research'),
+    ("bug_bounty", 'web3 bug bounty smart contract vulnerability disclosure postmortem security research'),
+    ("bug_bounty", 'DeFi protocol audit report exploit root cause remediation bug bounty'),
+    ("bug_bounty", 'smart contract security research attack vector mitigation technical blog'),
+    ("points_campaign_designer", 'crypto protocol points program rules eligibility referral sybil docs'),
+    ("points_campaign_designer", 'web3 referral campaign points incentives token allocation official blog'),
+    ("points_campaign_designer", 'crypto points program changes reward mechanics campaign analysis'),
+    ("reputation_manager", 'web3 contributor reputation scoring governance participation docs'),
+    ("reputation_manager", 'crypto protocol ambassador contributor program reputation community blog'),
+    ("reputation_manager", 'DAO governance participation reputation incentives research'),
+)
+
+
+def search_skill_showcase():
+    """Find source-backed material that can become public skill-showcase posts.
+
+    Uses a wider 30-day window than the breaking-news lane because docs,
+    whitepapers, technical blogs and research remain useful beyond one news cycle.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+    found = []
+    seen_urls = set()
+    for profile, query in SKILL_RESEARCH_QUERIES:
+        url = (
+            "https://news.google.com/rss/search?q="
+            + quote(query + " when:30d")
+            + "&hl=en-US&gl=US&ceid=US:en"
+        )
+        try:
+            response = requests.get(url, headers=HEADERS, timeout=15)
+            response.raise_for_status()
+            root = ET.fromstring(response.content)
+            for node in root.findall(".//item"):
+                title = node.findtext("title", "")
+                link = node.findtext("link", "")
+                created = _date(node.findtext("pubDate", ""))
+                desc_node = node.find("description")
+                description = "".join(desc_node.itertext()) if desc_node is not None else ""
+                if not link or link in seen_urls or not created or created < cutoff:
+                    continue
+                if not USEFUL.search(f"{title} {description}") and len(description.strip()) < 80:
+                    continue
+                seen_urls.add(link)
+                item = _record(
+                    "skill_research",
+                    "web research",
+                    title,
+                    description,
+                    link,
+                    created,
+                )
+                item["content_lane"] = "skill_showcase"
+                item["skill_profile"] = profile
+                item["niche"] = f"skill showcase: {profile}; docs, whitepapers, research and blogs"
+                item["tier"] = "SKILL SHOWCASE RESEARCH"
+                found.append(item)
+        except Exception as exc:
+            print(f"skill_research_error={profile}:{query}: {exc}")
+
+    sent = _load_seen_ids()
+    unique = {}
+    for item in found:
+        if item["id"] not in sent and _item_key(item) not in sent and item["url"]:
+            unique[item["url"]] = item
+    results = sorted(unique.values(), key=lambda item: item["created_at"], reverse=True)
+    print(f"skill_research_candidates={len(found)}")
+    print(f"skill_research_unique_new={len(results)}")
+    return results[:20]
