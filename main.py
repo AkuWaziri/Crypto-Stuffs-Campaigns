@@ -177,6 +177,9 @@ def main():
             # Never degrade into raw reposts: skip when Groq cannot produce analysis.
             print(f"ai_writing_error={item['id']}: {exc}")
             continue
+        if message is None:
+            print(f"editorial_gate_skip={item['id']}: no substantive finding in available source material")
+            continue
         try:
             delivered = send_message(message, dry_run=not args.telegram or args.test)
         except Exception as exc:
