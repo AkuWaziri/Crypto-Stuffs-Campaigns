@@ -157,7 +157,7 @@ def write_finding(item):
             "creator for Web3 protocols; Web3 compliance analysis; ethical bug-bounty and smart-contract "
             "security research; referral/points campaign design; and protocol reputation/community "
             "management. The skill profile for this source is "
-            + str(item.get("skill_profile") or "best fit") + ".\\n\\n"
+            + str(item.get("skill_profile") or "best fit") + ".\n\n"
             "Research the supplied article/page and turn its concrete details into a useful, "
             "publish-ready post in the owner's own editorial voice. Do not merely summarize it. "
             "Choose a credible angle such as a motion-video concept that explains a real protocol "
@@ -166,7 +166,7 @@ def write_finding(item):
             "with anti-Sybil and measurable incentive design; or a reputation strategy tied to real "
             "contributor/governance behavior. Include a specific observation and a suggested post "
             "or practical framework the owner could publish. Make it feel personal and original, "
-            "not like a job advert or generic list of services.\\n"
+            "not like a job advert or generic list of services.\n"
             "Never invent that the owner audited, built, advised, represented, or worked for a "
             "project. Do not claim professional qualifications or legal authority. For compliance, "
             "explain issues as general research, not legal advice. For bug bounty, keep guidance "
@@ -175,7 +175,7 @@ def write_finding(item):
             "substantive detail that can support a useful skill-led post, return exactly SKIP_ITEM. "
             "Prefer official docs, whitepapers, research, technical blogs and primary sources. "
             "Distinguish source facts from your suggested idea. Keep it concise and specific, normally "
-            "3–6 sentences. End with the exact original URL on a separate line: Source: <URL>.\\n\\n"
+            "3–6 sentences. End with the exact original URL on a separate line: Source: <URL>.\n\n"
         )
     else:
         task_prompt = (
@@ -186,7 +186,7 @@ def write_finding(item):
             "SKIP_ITEM. Otherwise write the most specific evidence-backed finding and explain its "
             "mechanism or practical significance. Preserve uncertainty; do not pretend you "
             "independently verified the page or any on-chain claim. End with the exact original URL "
-            "on one Source line.\\n\\n"
+            "on one Source line.\n\n"
         )
 
     response = _client().chat.completions.create(
