@@ -94,3 +94,27 @@ def test_skill_showcase_uses_profile_and_requires_publishable_research(monkeypat
     assert "anti-Sybil" in prompt
     assert "legal advice" in prompt
     assert result.endswith("Source: https://example.com/points-docs")
+
+
+
+def test_howto_research_prompt_requires_reproducible_steps_and_source(monkeypatch):
+    fake = FakeClient()
+    monkeypatch.setattr(editorial, "_client", lambda: fake)
+    monkeypatch.setattr(editorial, "_fetch_article_text", lambda url: "Official documentation provides prerequisites, the free tier limits, and exact setup steps for an API account.")
+    item = {
+        "id": "howto-test",
+        "source": "howto_research",
+        "content_lane": "research_guides",
+        "niche": "free-first AI API setup guide",
+        "text": "How to configure a free API tier with documented usage limits and verification steps.",
+        "url": "https://example.com/free-api-guide",
+        "created_at": "2026-10-10T10:00:00+00:00",
+    }
+
+    result = editorial.write_finding(item)
+
+    prompt = fake.chat.completions.last_request["messages"][1]["content"]
+    assert "step-by-step how-to guide" in prompt
+    assert "free tier" in prompt
+    assert "profit promise" in prompt
+    assert result.endswith("Source: https://example.com/free-api-guide")
