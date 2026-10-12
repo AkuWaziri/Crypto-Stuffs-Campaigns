@@ -75,7 +75,7 @@ def _record(source, author, title, description, url, created):
 def _google_news(cutoff):
     found = []
     for query in QUERIES:
-        url = "https://news.google.com/rss/search?q=" + quote(query + " when:7d") + "&hl=en-US&gl=US&ceid=US:en"
+        url = "https://news.google.com/rss/search?q=" + quote(query + " when:30d") + "&hl=en-US&gl=US&ceid=US:en"
         try:
             response = requests.get(url, headers=HEADERS, timeout=15)
             response.raise_for_status()
@@ -151,23 +151,35 @@ SKILL_RESEARCH_QUERIES = (
 # docs, primary sources and guides that link to the actual product/documentation.
 HOWTO_RESEARCH_QUERIES = (
     '"how to" DeFi guide free tools protocol docs',
-    'Starknet meme coins how to trade launchpad DEX aggregator official guide',
+    'Starknet meme tokens how to research trade Ekubo AVNU launchpad official docs',
+    'site:ekubo.org Starknet swap pools trading documentation',
+    'site:avnu.fi Starknet swap aggregator token verification documentation',
+    'site:starklaunchy.fun Starknet launchpad token launch documentation',
     'free AI API credits startup program eligibility official documentation',
+    'Google for Startups Cloud Program credits eligibility official',
+    'AWS Activate Founders credits application eligibility official',
+    'Deepgram startup program credits eligibility official',
+    'Azure startup credits Microsoft for Startups Founders Hub official',
+    'Cloudflare for Startups credits eligibility official',
     'free VPS cloud credits always free tier setup guide official docs',
-    'crypto multisig wallet setup Safe Squads official guide',
+    'free cloud GPU credits AI inference models developer program official',
+    'crypto multisig wallet setup Safe official guide owners threshold',
+    'Solana multisig wallet setup Squads official documentation',
     'free crypto security tools wallet approval revoke phishing prevention guide',
     'Bitcoin mining profitability setup electricity pool guide educational',
     'DeFi lending borrowing liquidity staking how it works risks official docs',
     'crypto trading order types slippage limit orders risk management guide',
     'X tools automation analytics API free tier guide official documentation',
     'free open source crypto research on-chain analytics dashboards tutorial',
-    'free cloud GPU credits AI inference models developer program official',
     'crypto airdrop points campaign eligibility anti sybil how to guide',
     'self hosted node RPC indexer crypto VPS deployment tutorial',
     'smart contract testnet deploy verify contract free tutorial',
     'open source security bug bounty responsible disclosure how to guide',
     'free email domain setup SPF DKIM MX startup credits guide',
     'free developer tools rate limits API keys credits eligibility guide',
+    'free open source crypto tax portfolio analytics tools how to use',
+    'free testnet faucet deploy contract verify transaction tutorial',
+    'wallet security hardware wallet seed backup multisig threat model guide',
 )
 HOWTO_SIGNAL = re.compile(
     r'how to|step.by.step|tutorial|guide|walkthrough|setup|set up|configure|'
@@ -180,7 +192,7 @@ HOWTO_SIGNAL = re.compile(
 
 def search_howto_research():
     """Discover practical, free-first tutorials and retain their reference URLs."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
     found = []
     seen_urls = set()
     for query in HOWTO_RESEARCH_QUERIES:
@@ -204,18 +216,32 @@ def search_howto_research():
                     continue
                 if not HOWTO_SIGNAL.search(combined):
                     continue
-                # Prefer actionable material with an explicit free/open-source/credits
-                # signal; still permit genuinely useful setup/security guides.
+                # Prefer free/open-source/credits material, but keep useful
+                # reproducible workflows (e.g. multisig or trading mechanics) even
+                # when the source correctly notes unavoidable network fees.
                 free_signal = re.search(
-                    r'free|zero.cost|no.cost|open.source|credits|free tier|testnet',
+                    r'free|zero.cost|no.cost|open.source|credits|free tier|testnet|'
+                    r'always.free|free.to.use|no fee',
                     combined, re.I,
                 )
                 practical_signal = re.search(
                     r'how to|tutorial|guide|walkthrough|setup|set up|getting started|'
-                    r'documentation|docs|step.by.step|configure|deploy',
+                    r'documentation|docs|step.by.step|configure|deploy|eligibility|'
+                    r'apply|threshold|slippage|swap|multisig|launchpad|aggregator|'
+                    r'wallet|API|VPS|credits',
                     combined, re.I,
                 )
-                if not (free_signal and practical_signal):
+                if not practical_signal:
+                    continue
+                # Topic-specific guides remain eligible when their real cost is
+                # gas, electricity, a paid account, or a conditional credit program.
+                topic_signal = re.search(
+                    r'Starknet|Ekubo|AVNU|Safe wallet|Squads|multisig|startup program|'
+                    r'cloud credits|AI API|VPS|mining|trading|slippage|wallet security|'
+                    r'bug bounty|testnet|RPC|on.chain analytics|domain email',
+                    combined, re.I,
+                )
+                if not (free_signal or topic_signal):
                     continue
                 seen_urls.add(link)
                 item = _record(
@@ -227,7 +253,8 @@ def search_howto_research():
                     created,
                 )
                 item["content_lane"] = "research_guides"
-                item["niche"] = "practical free-first guides: DeFi, security, AI credits, VPS, trading, mining and tools"
+                item["guide_category"] = "practical_howto"
+                item["niche"] = "practical free-first guides: DeFi, Starknet trading tools, security, AI/cloud credits, VPS, X tools, mining, multisig and on-chain research"
                 item["tier"] = "HOW-TO RESEARCH"
                 found.append(item)
         except Exception as exc:
