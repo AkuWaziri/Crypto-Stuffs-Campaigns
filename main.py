@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 os.environ.setdefault("VIRAL_SEEN_STATE_FILE", ".campaign_state.json")
 
 from config import HIGH_PERFORMANCE_MAX_ITEMS, LOOKBACK_HOURS, MAX_FEED_ITEMS
-from discovery import search_crypto_alpha, search_skill_showcase
+from discovery import search_crypto_alpha, search_howto_research, search_skill_showcase
 from editorial import clean_source_text, write_finding
 from high_performance import _item_key, _url_key, _load_seen_ids, mark_sent, search_high_performing_x
 from telegram import send_message
@@ -15,6 +15,7 @@ from web_sources import fetch_public_content
 SOCIAL_SOURCES = {"x_high_performance", "x_social", "medium", "reddit", "telegram", "bluesky", "farcaster"}
 WEB_SOURCES = {"web"}
 SKILL_SOURCES = {"skill_research"}
+HOWTO_SOURCES = {"howto_research"}
 
 
 def _created_datetime(value):
@@ -80,8 +81,8 @@ def _unique_findings(groups, limit):
                 local_urls.add(url_key)
             candidates.append(item)
 
-    # Keep existing social/web findings while reserving a small, separate lane
-    # for skill-showcase research so it cannot be crowded out by X volume.
+    # Balance social findings, general web research, practical how-to guides,
+    # and the separate professional skill-showcase lane.
     x_items = sorted(
         (x for x in candidates if x.get("source") == "x_high_performance"),
         key=lambda x: (int(x.get("views") or 0), _sort_key(x)),
@@ -102,8 +103,13 @@ def _unique_findings(groups, limit):
         key=_sort_key,
         reverse=True,
     )
+    howto_items = sorted(
+        (x for x in candidates if x.get("source") in HOWTO_SOURCES),
+        key=_sort_key,
+        reverse=True,
+    )
     other_items = sorted(
-        (x for x in candidates if x.get("source") not in SOCIAL_SOURCES | WEB_SOURCES | SKILL_SOURCES),
+        (x for x in candidates if x.get("source") not in SOCIAL_SOURCES | WEB_SOURCES | SKILL_SOURCES | HOWTO_SOURCES),
         key=_sort_key,
         reverse=True,
     )
@@ -120,22 +126,23 @@ def _unique_findings(groups, limit):
             selected_ids.add(item["id"])
             count -= 1
 
-    # At the current 13-item cap, target a mix of up to 6 high-performing X
-    # findings, 2 other social posts, 3 web findings and 2 skill-led research
-    # leads. Skill research is capped at two even when other lanes are sparse.
-    take(x_items, min(6, limit))
+    # At the current 13-item cap, target up to 5 high-performing X findings,
+    # 2 other social posts, 2 general web findings, 2 how-to guides and 2
+    # skill-led research leads. Both dedicated research lanes are independently capped.
+    take(x_items, min(5, limit))
     take(other_social, min(2, max(0, limit - len(selected))))
-    take(web_items, min(3, max(0, limit - len(selected))))
+    take(web_items, min(2, max(0, limit - len(selected))))
+    take(howto_items, min(2, max(0, limit - len(selected))))
     take(skill_items, min(2, max(0, limit - len(selected))))
     take(other_items, limit - len(selected))
-    # Fill any remaining slots from non-skill lanes only. This prevents the
-    # fallback from silently bypassing the dedicated skill-research quota.
-    remaining_non_skill = sorted(
-        (x for x in candidates if x.get("source") not in SKILL_SOURCES),
+    # Fill remaining slots from general lanes only. Dedicated how-to and
+    # skill-research quotas must not be bypassed by fallback selection.
+    remaining_general = sorted(
+        (x for x in candidates if x.get("source") not in SKILL_SOURCES | HOWTO_SOURCES),
         key=_sort_key,
         reverse=True,
     )
-    take(remaining_non_skill, limit - len(selected))
+    take(remaining_general, limit - len(selected))
     return selected
 
 
@@ -153,7 +160,7 @@ def main():
     print("CRYPTO-STUFFS")
     print("mode=read-only")
     print("feed=ai_written_crypto_findings")
-    print("sources=x,web_news,docs_whitepapers_research_blogs,medium,reddit,telegram,bluesky,farcaster")
+    print("sources=x,web_news,howto_guides,docs_whitepapers_research_blogs,medium,reddit,telegram,bluesky,farcaster")
     print("github_feed=disabled")
     print("style=groq_analyst_findings_and_skill_showcase_posts_human_dna_source_linked")
     print(f"lookback_hours={LOOKBACK_HOURS}")
@@ -163,6 +170,7 @@ def main():
     for label, fetcher in (
         ("x", search_high_performing_x),
         ("web_research", search_crypto_alpha),
+        ("howto_research", search_howto_research),
         ("skill_showcase_research", search_skill_showcase),
         ("public_social", fetch_public_content),
     ):
