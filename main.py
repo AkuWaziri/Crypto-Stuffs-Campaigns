@@ -133,13 +133,13 @@ def _unique_findings(groups, limit):
             selected_ids.add(item["id"])
             count -= 1
 
-    # At the current 13-item cap, target up to 5 high-performing X findings,
-    # 2 other social posts, 2 general web findings, 2 how-to guides and 2
-    # skill-led research leads. Both dedicated research lanes are independently capped.
-    take(x_items, min(5, limit))
+    # At the current 13-item cap, reserve space for practical research:
+    # up to 4 high-performing X findings, 2 other social posts, 2 general web
+    # findings, 3 how-to guides and 2 skill-led research leads.
+    take(x_items, min(4, limit))
     take(other_social, min(2, max(0, limit - len(selected))))
     take(web_items, min(2, max(0, limit - len(selected))))
-    take(howto_items, min(2, max(0, limit - len(selected))))
+    take(howto_items, min(3, max(0, limit - len(selected))))
     take(skill_items, min(2, max(0, limit - len(selected))))
     take(other_items, limit - len(selected))
     # Fill remaining slots from general lanes only. Dedicated how-to and
