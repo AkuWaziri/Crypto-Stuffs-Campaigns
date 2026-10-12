@@ -37,7 +37,14 @@ def _is_recent(item, cutoff):
     created = _created_datetime(item.get("created_at"))
     # Preserve candidates with missing/unparseable dates; the editorial layer must
     # not discard a useful finding solely because a platform has an odd timestamp.
-    return created is None or created >= cutoff
+    if created is None or created >= cutoff:
+        return True
+    # Practical how-to guides and setup docs stay useful beyond a breaking-news
+    # cycle. Give this dedicated lane a 30-day discovery window while keeping
+    # news/social findings constrained by the configured feed lookback.
+    if item.get("source") == "howto_research":
+        return created >= datetime.now(timezone.utc) - timedelta(days=30)
+    return False
 
 
 def _sort_key(item):
