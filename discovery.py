@@ -145,6 +145,104 @@ SKILL_RESEARCH_QUERIES = (
 )
 
 
+
+# A dedicated how-to/research lane: practical, free-first guides that readers can
+# reproduce. Search broadly across protocols and tooling, but prefer official
+# docs, primary sources and guides that link to the actual product/documentation.
+HOWTO_RESEARCH_QUERIES = (
+    '"how to" DeFi guide free tools protocol docs',
+    'Starknet meme coins how to trade launchpad DEX aggregator official guide',
+    'free AI API credits startup program eligibility official documentation',
+    'free VPS cloud credits always free tier setup guide official docs',
+    'crypto multisig wallet setup Safe Squads official guide',
+    'free crypto security tools wallet approval revoke phishing prevention guide',
+    'Bitcoin mining profitability setup electricity pool guide educational',
+    'DeFi lending borrowing liquidity staking how it works risks official docs',
+    'crypto trading order types slippage limit orders risk management guide',
+    'X tools automation analytics API free tier guide official documentation',
+    'free open source crypto research on-chain analytics dashboards tutorial',
+    'free cloud GPU credits AI inference models developer program official',
+    'crypto airdrop points campaign eligibility anti sybil how to guide',
+    'self hosted node RPC indexer crypto VPS deployment tutorial',
+    'smart contract testnet deploy verify contract free tutorial',
+    'open source security bug bounty responsible disclosure how to guide',
+    'free email domain setup SPF DKIM MX startup credits guide',
+    'free developer tools rate limits API keys credits eligibility guide',
+)
+HOWTO_SIGNAL = re.compile(
+    r'how to|step.by.step|tutorial|guide|walkthrough|setup|set up|configure|'
+    r'getting started|documentation|docs|free tier|free credits|no.cost|open.source|'
+    r'free tool|testnet|multisig|slippage|launchpad|aggregator|vps|cloud credits|'
+    r'bug bounty|security|wallet|defi|trading|mining|api|deployment|deploy',
+    re.I,
+)
+
+
+def search_howto_research():
+    """Discover practical, free-first tutorials and retain their reference URLs."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    found = []
+    seen_urls = set()
+    for query in HOWTO_RESEARCH_QUERIES:
+        url = (
+            "https://news.google.com/rss/search?q="
+            + quote(query + " when:7d")
+            + "&hl=en-US&gl=US&ceid=US:en"
+        )
+        try:
+            response = requests.get(url, headers=HEADERS, timeout=15)
+            response.raise_for_status()
+            root = ET.fromstring(response.content)
+            for node in root.findall(".//item"):
+                title = node.findtext("title", "")
+                link = node.findtext("link", "")
+                created = _date(node.findtext("pubDate", ""))
+                desc_node = node.find("description")
+                description = "".join(desc_node.itertext()) if desc_node is not None else ""
+                combined = f"{title} {description}"
+                if not link or link in seen_urls or not created or created < cutoff:
+                    continue
+                if not HOWTO_SIGNAL.search(combined):
+                    continue
+                # Prefer actionable material with an explicit free/open-source/credits
+                # signal; still permit genuinely useful setup/security guides.
+                free_signal = re.search(
+                    r'free|zero.cost|no.cost|open.source|credits|free tier|testnet',
+                    combined, re.I,
+                )
+                practical_signal = re.search(
+                    r'how to|tutorial|guide|walkthrough|setup|set up|getting started|'
+                    r'documentation|docs|step.by.step|configure|deploy',
+                    combined, re.I,
+                )
+                if not (free_signal and practical_signal):
+                    continue
+                seen_urls.add(link)
+                item = _record(
+                    "howto_research",
+                    "web research",
+                    title,
+                    description,
+                    link,
+                    created,
+                )
+                item["content_lane"] = "research_guides"
+                item["niche"] = "practical free-first guides: DeFi, security, AI credits, VPS, trading, mining and tools"
+                item["tier"] = "HOW-TO RESEARCH"
+                found.append(item)
+        except Exception as exc:
+            print(f"howto_research_error={query}: {exc}")
+
+    sent = _load_seen_ids()
+    unique = {}
+    for item in found:
+        if item["id"] not in sent and _item_key(item) not in sent and item["url"]:
+            unique[item["url"]] = item
+    results = sorted(unique.values(), key=lambda item: item["created_at"], reverse=True)
+    print(f"howto_research_candidates={len(found)}")
+    print(f"howto_research_unique_new={len(results)}")
+    return results[:20]
+
 def search_skill_showcase():
     """Find source-backed material that can become public skill-showcase posts.
 
