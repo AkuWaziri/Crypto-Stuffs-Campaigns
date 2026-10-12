@@ -137,6 +137,7 @@ def write_finding(item):
     source_text = clean_source_text(item.get("text"))
     article_text = _fetch_article_text(url)
     is_skill_lane = item.get("content_lane") == "skill_showcase"
+    is_howto_lane = item.get("content_lane") == "research_guides"
     source_material = {
         "content_lane": item.get("content_lane", "crypto_findings"),
         "skill_profile": item.get("skill_profile", ""),
@@ -150,7 +151,26 @@ def write_finding(item):
         "fetched_article_text": article_text,
         "original_url": url,
     }
-    if is_skill_lane:
+    if is_howto_lane:
+        task_prompt = (
+            "Turn this source into a genuinely useful, step-by-step how-to guide for a reader who wants "
+            "to reproduce the workflow at little or no cost. Topic can include DeFi, crypto security "
+            "and incident response, mining education, AI/API credits, X tools, VPS/cloud setup, "
+            "trading mechanics, wallet safety, on-chain research, free developer tooling, or related "
+            "practical topics. Start by checking the supplied article/page and prefer official product "
+            "docs, primary sources, and the actual tool URL over summaries. Explain prerequisites, "
+            "ordered steps, the free tier/credit conditions if stated, limitations, and a simple way "
+            "to verify success. Keep every claim about pricing, eligibility, limits, rewards, or free "
+            "availability tied to the source; these terms change. Do not invent steps or imply a paid "
+            "feature is free. If the source does not support a reproducible guide, return exactly "
+            "SKIP_ITEM. For trading, mining, and DeFi, distinguish educational steps from a profit "
+            "promise and state material risks without giving unsupported token picks. For security, "
+            "keep actions defensive or explicitly authorized. Use concise numbered steps where useful, "
+            "make the guide clear enough to follow, and include direct links supplied by the source "
+            "when relevant. Finish with the exact original reference URL on a separate line: "
+            "Source: <URL>.\n\n"
+        )
+    elif is_skill_lane:
         task_prompt = (
             "You are a professional content strategist helping the owner publish original public "
             "posts that demonstrate practical thinking across these skill lenses: motion video "
