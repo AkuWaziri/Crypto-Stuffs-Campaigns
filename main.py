@@ -133,14 +133,15 @@ def _unique_findings(groups, limit):
             selected_ids.add(item["id"])
             count -= 1
 
-    # At the current 13-item cap, reserve space for practical research:
-    # up to 4 high-performing X findings, 2 other social posts, 2 general web
-    # findings, 3 how-to guides and 2 skill-led research leads.
-    take(x_items, min(4, limit))
-    take(other_social, min(2, max(0, limit - len(selected))))
-    take(web_items, min(2, max(0, limit - len(selected))))
-    take(howto_items, min(3, max(0, limit - len(selected))))
-    take(skill_items, min(2, max(0, limit - len(selected))))
+    # Reserve category-balanced slots. When the caller asks for a larger
+    # candidate buffer, scale these quotas so rejected weak candidates can be
+    # replaced by later candidates from the same lanes.
+    quota_scale = max(1, (limit + 12) // 13)
+    take(x_items, min(4 * quota_scale, limit))
+    take(other_social, min(2 * quota_scale, max(0, limit - len(selected))))
+    take(web_items, min(2 * quota_scale, max(0, limit - len(selected))))
+    take(howto_items, min(3 * quota_scale, max(0, limit - len(selected))))
+    take(skill_items, min(2 * quota_scale, max(0, limit - len(selected))))
     take(other_items, limit - len(selected))
     # Fill remaining slots from general lanes only. Dedicated how-to and
     # skill-research quotas must not be bypassed by fallback selection.
@@ -189,8 +190,14 @@ def main():
             print(f"source_lane_error={label}: {exc}")
             groups.append([])
 
-    selected = _unique_findings(groups, MAX_FEED_ITEMS)
+    # Select a 2x candidate buffer: the editorial gate can reject thin or
+    # promotional source material, so do not let those rejections collapse a
+    # 13-item target to only one or two delivered findings.
+    candidate_limit = max(MAX_FEED_ITEMS, MAX_FEED_ITEMS * 2)
+    selected = _unique_findings(groups, candidate_limit)
     print(f"findings_selected={len(selected)}")
+    print(f"findings_delivery_target={MAX_FEED_ITEMS}")
+    print(f"findings_candidate_buffer={candidate_limit}")
     if not selected:
         print("findings_sent=0")
         return
@@ -198,6 +205,8 @@ def main():
     source_counts = {}
     delivered_items = []
     for item in selected:
+        if len(delivered_items) >= MAX_FEED_ITEMS:
+            break
         source = item.get("source", "unknown")
         source_counts[source] = source_counts.get(source, 0) + 1
         try:
