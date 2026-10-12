@@ -65,3 +65,23 @@ def test_old_and_duplicate_items_are_filtered(monkeypatch):
 
     assert old not in selected
     assert len([x for x in selected if "Repeated title" in x["text"]]) == 1
+
+
+
+def test_selection_reserves_howto_and_skill_research_without_exceeding_cap(monkeypatch):
+    monkeypatch.setattr(main, "_load_seen_ids", lambda: set())
+    x = [item("x_high_performance", n, views=50000 + n) for n in range(15)]
+    web = [item("web", n) for n in range(8)]
+    howto = [item("howto_research", n) for n in range(6)]
+    skill = [item("skill_research", n) for n in range(6)]
+    for entry in howto:
+        entry["content_lane"] = "research_guides"
+    for entry in skill:
+        entry["content_lane"] = "skill_showcase"
+
+    selected = main._unique_findings([x, web, howto, skill], 13)
+
+    assert len(selected) == 13
+    assert sum(entry["source"] == "howto_research" for entry in selected) == 2
+    assert sum(entry["source"] == "skill_research" for entry in selected) == 2
+    assert all(entry["source"] != "github" for entry in selected)
