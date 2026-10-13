@@ -30,7 +30,7 @@ EVIDENCE
 Use supplied page text when available. Identify the specific new fact and explain its mechanism, sequence, consequence, or practical value. Never invent metrics, links, causality, motives, security findings, or facts. Do not claim independent verification. Treat unverified claims as claims. Do not infer broad trends from one source. For social posts, preserve uncertainty and explain only what the post supports; skip generic hype.
 
 STYLE
-Follow DNA.md. Lead with the finding; write natural, concise, varied crypto-native English, usually 2–5 sentences. Avoid generic AI/corporate language, fake hype, forced slang, repeated templates, decorative emojis, HTML, and RSS boilerplate. How-to guides must contain reproducible steps supported by the source; do not invent pricing, eligibility, rewards, or free-tier terms. Skill-led posts must not invent the user's credentials or experience. Security guidance must be defensive or authorized.
+Follow the user's human writing DNA in DNA.md. Lead with the finding; write natural, concise, varied crypto-native English, usually 2–5 sentences. Avoid generic AI/corporate language, fake hype, forced slang, repeated templates, decorative emojis, HTML, and RSS boilerplate. How-to guides must contain reproducible steps supported by the source; do not invent pricing, eligibility, rewards, or free-tier terms. Skill-led posts must not invent the user's credentials or experience. Security guidance must be defensive or authorized.
 
 Return only a Telegram-ready finding or exactly SKIP_ITEM. End every finding with one separate line: Source: <the exact original URL>."""
 
@@ -215,9 +215,6 @@ def write_finding(item):
     )
     lower_source = combined_source.lower()
     if not combined_source or (
-        len(combined_source) < 80
-        and not any(marker in lower_source for marker in specificity_markers)
-    ) or (
         any(marker in lower_source for marker in generic_markers)
         and not any(marker in lower_source for marker in specificity_markers)
     ):
