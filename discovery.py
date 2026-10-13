@@ -243,7 +243,7 @@ def search_howto_research():
             root = ET.fromstring(response.content)
             for node in root.findall(".//item"):
                 title = node.findtext("title", "")
-                link = node.findtext("link", "")
+                link = _resolve_news_link(node.findtext("link", ""))
                 created = _date(node.findtext("pubDate", ""))
                 desc_node = node.find("description")
                 description = "".join(desc_node.itertext()) if desc_node is not None else ""
@@ -327,7 +327,7 @@ def search_skill_showcase():
             root = ET.fromstring(response.content)
             for node in root.findall(".//item"):
                 title = node.findtext("title", "")
-                link = node.findtext("link", "")
+                link = _resolve_news_link(node.findtext("link", ""))
                 created = _date(node.findtext("pubDate", ""))
                 desc_node = node.find("description")
                 description = "".join(desc_node.itertext()) if desc_node is not None else ""
