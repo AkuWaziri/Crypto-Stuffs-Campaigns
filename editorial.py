@@ -15,34 +15,24 @@ MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 DNA_PATH = Path(__file__).with_name("DNA.md")
 SKIP_MARKER = "SKIP_ITEM"
 ARTICLE_TIMEOUT_SECONDS = 8
-ARTICLE_TEXT_LIMIT = 12000
+ARTICLE_TEXT_LIMIT = 2000
+SOCIAL_SNIPPET_LIMIT = 1000
 
-BASE_PROMPT = """You are the research editor, source investigator, and crypto-native analyst for a high-signal findings feed. Your job is to FIND the actual story, not make every candidate sound interesting.
+BASE_PROMPT = """You are the selective research editor for a high-signal crypto findings feed.
 
-EDITORIAL GATE — APPLY THIS BEFORE WRITING
-Reject a candidate by returning exactly SKIP_ITEM when, after reading the supplied source material:
-- it is only a vague prediction, opinion, listicle, promotional claim, or recycled headline;
-- it gives no concrete event, technical mechanism, data point, implementation detail, primary-source lead, or genuinely useful explanation;
-- its crypto connection is forced or merely hypothetical;
-- the only possible analysis is saying that the source lacks evidence.
-Do not rescue weak content with polished speculation. A smaller feed of real discoveries is better than a full feed of filler.
+GATE
+Return exactly SKIP_ITEM for vague predictions, generic opinions, listicles, promotion, recycled headlines, forced crypto angles, or items with no concrete event, mechanism, data point, implementation detail, primary-source lead, or useful explanation. Do not polish weak material into a finding. Never reject a short social post only because it is short.
 
 WHAT QUALIFIES
-Prioritize specific crypto discoveries across exploits/security, on-chain wallet or fund movements, DeFi mechanics, stablecoins/payments, protocol changes, AI agents, NFTs, infrastructure, developer tools, launches, governance, adoption, and unusual market or ecosystem behavior. Strong leads include transaction hashes, wallet addresses, measurable changes, code/PRs, postmortems, technical docs, benchmarks, specific rollout details, reproducible demos, and first-hand builder reports. A useful technical explanation can qualify without numbers if it contains real mechanism-level detail.
+Prioritize concrete discoveries about exploits/security, on-chain activity, DeFi, stablecoins/payments, protocol changes, AI agents, NFTs, infrastructure, developer tools, launches, governance, adoption, and unusual ecosystem behavior. Useful evidence includes transaction hashes, addresses, measurable changes, code/PRs, postmortems, technical docs, benchmarks, rollout details, reproducible demos, and first-hand builder reports.
 
-RESEARCH AND EVIDENCE RULES
-- Use the supplied full-page text when available, not just its headline or RSS snippet.
-- Find the most specific new fact. Explain the mechanism, sequence, contradiction, consequence, or practical builder insight.
-- Never invent metrics, wallet links, causality, motives, security findings, or facts not in the material.
-- Do not imply you independently verified a URL, transaction, benchmark, or allegation. Treat unverified claims as claims.
-- Do not infer a broad market trend from one article. Do not attach generic staking, yield, AI, or DeFi implications unless the evidence connects them.
-- For X and other short social posts, do not reject solely because the post is short or lacks article-length detail. If it names a specific protocol, technical change, incident, on-chain action, measurable result, tool, or reproducible workflow, explain only what the post actually supports and preserve uncertainty. Reject generic hype and unsupported claims.
-- Do not turn every item into a warning that data is missing. If there is no finding, skip it.
+EVIDENCE
+Use supplied page text when available. Identify the specific new fact and explain its mechanism, sequence, consequence, or practical value. Never invent metrics, links, causality, motives, security findings, or facts. Do not claim independent verification. Treat unverified claims as claims. Do not infer broad trends from one source. For social posts, preserve uncertainty and explain only what the post supports; skip generic hype.
 
-WRITING STYLE
-Follow the user's human writing DNA in DNA.md. Lead with the finding, not a generic intro. Make it feel observed and investigative: specific detail → how it works / what changed → why the detail is surprising or useful. Use natural crypto-native English, concise and varied. Usually 2–5 sentences. Avoid generic AI/corporate language, fake hype, repetitive templates, forced slang, decorative emojis, HTML, and RSS boilerplate. A short headline is fine when useful, but vary structure.
-Return only the finished Telegram-ready finding, or exactly SKIP_ITEM if it fails the editorial gate.
-The finished finding must end with exactly one separate line: Source: <the exact original URL>."""
+STYLE
+Follow DNA.md. Lead with the finding; write natural, concise, varied crypto-native English, usually 2–5 sentences. Avoid generic AI/corporate language, fake hype, forced slang, repeated templates, decorative emojis, HTML, and RSS boilerplate. How-to guides must contain reproducible steps supported by the source; do not invent pricing, eligibility, rewards, or free-tier terms. Skill-led posts must not invent the user's credentials or experience. Security guidance must be defensive or authorized.
+
+Return only a Telegram-ready finding or exactly SKIP_ITEM. End every finding with one separate line: Source: <the exact original URL>."""
 
 def clean_source_text(value):
     """Strip HTML/XML markup and decode entities before editorial generation."""
@@ -148,8 +138,8 @@ def write_finding(item):
         "views": item.get("views"),
         "category_or_niche": item.get("niche", ""),
         "tier": item.get("tier", ""),
-        "feed_snippet_or_post": source_text[:6000],
-        "fetched_article_text": article_text,
+        "feed_snippet_or_post": source_text[:SOCIAL_SNIPPET_LIMIT],
+        "fetched_article_text": article_text[:ARTICLE_TEXT_LIMIT],
         "original_url": url,
     }
     if is_howto_lane:
@@ -210,9 +200,44 @@ def write_finding(item):
             "on one Source line.\n\n"
         )
 
+    # Reject only clearly empty/generic material before spending a Groq call.
+    # Specific short social posts remain eligible for the model's evidence gate.
+    combined_source = f"{source_text} {article_text}".strip()
+    specificity_markers = (
+        "0x", "tx hash", "transaction", "github.com", "pull request", "postmortem",
+        "exploit", "vulnerability", "launched", "deploy", "upgrade", "proposal",
+        "benchmark", "million", "billion", "%", "api", "docs", "how to", "step",
+        "wallet", "contract", "mainnet", "testnet", "open source", "release",
+    )
+    generic_markers = (
+        "you won't believe", "huge news", "this is bullish", "game changer",
+        "mass adoption is coming", "the future of crypto", "don't miss out",
+    )
+    lower_source = combined_source.lower()
+    if not combined_source or (
+        len(combined_source) < 80
+        and not any(marker in lower_source for marker in specificity_markers)
+    ) or (
+        any(marker in lower_source for marker in generic_markers)
+        and not any(marker in lower_source for marker in specificity_markers)
+    ):
+        print(f"cheap_editorial_skip={url}: thin_or_generic_source")
+        return None
+
+    # Keep generated output and GPT-OSS reasoning bounded. Guides get more
+    # room than ordinary findings, but all calls have an explicit ceiling.
+    if is_howto_lane:
+        output_token_limit = 900
+    elif is_skill_lane:
+        output_token_limit = 650
+    else:
+        output_token_limit = 450
+
     request = {
         "model": MODEL,
         "temperature": 0.35,
+        "max_completion_tokens": output_token_limit,
+        "reasoning_effort": "low",
         "messages": [
             {"role": "system", "content": _system_prompt()},
             {
