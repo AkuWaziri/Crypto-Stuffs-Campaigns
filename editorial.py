@@ -1,6 +1,7 @@
 """Groq-powered research and editorial gate for original crypto findings."""
 import json
 import os
+import time
 from functools import lru_cache
 from html import unescape
 from pathlib import Path
@@ -35,7 +36,7 @@ RESEARCH AND EVIDENCE RULES
 - Never invent metrics, wallet links, causality, motives, security findings, or facts not in the material.
 - Do not imply you independently verified a URL, transaction, benchmark, or allegation. Treat unverified claims as claims.
 - Do not infer a broad market trend from one article. Do not attach generic staking, yield, AI, or DeFi implications unless the evidence connects them.
-- If the source is thin but points to a concrete lead, only publish if that lead itself is specific and useful. Otherwise return SKIP_ITEM.
+- For X and other short social posts, do not reject solely because the post is short or lacks article-length detail. If it names a specific protocol, technical change, incident, on-chain action, measurable result, tool, or reproducible workflow, explain only what the post actually supports and preserve uncertainty. Reject generic hype and unsupported claims.
 - Do not turn every item into a warning that data is missing. If there is no finding, skip it.
 
 WRITING STYLE
@@ -209,17 +210,42 @@ def write_finding(item):
             "on one Source line.\n\n"
         )
 
-    response = _client().chat.completions.create(
-        model=MODEL,
-        temperature=0.35,
-        messages=[
+    request = {
+        "model": MODEL,
+        "temperature": 0.35,
+        "messages": [
             {"role": "system", "content": _system_prompt()},
             {
                 "role": "user",
                 "content": task_prompt + json.dumps(source_material, ensure_ascii=False),
             },
         ],
-    )
+    }
+    client = _client()
+    response = None
+    # Groq's free/on-demand token limits can return transient 429s during a
+    # multi-item run. Retry instead of silently losing that candidate.
+    for attempt in range(5):
+        try:
+            response = client.chat.completions.create(**request)
+            break
+        except Exception as exc:
+            status = getattr(exc, "status_code", None)
+            if status is None:
+                status = getattr(getattr(exc, "response", None), "status_code", None)
+            if status != 429 or attempt == 4:
+                raise
+            wait_seconds = min(2 ** (attempt + 1), 30)
+            headers = getattr(getattr(exc, "response", None), "headers", {}) or {}
+            retry_after = headers.get("retry-after")
+            try:
+                wait_seconds = max(wait_seconds, float(retry_after))
+            except (TypeError, ValueError):
+                pass
+            print(f"groq_rate_limited_retry={attempt + 1} wait_seconds={wait_seconds}")
+            time.sleep(wait_seconds)
+    if response is None:
+        raise RuntimeError("Groq did not return a response after rate-limit retries")
     text = clean_source_text(response.choices[0].message.content or "")
     if not text:
         raise RuntimeError("Groq returned an empty finding")
