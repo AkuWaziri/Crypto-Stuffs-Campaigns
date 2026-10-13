@@ -133,9 +133,8 @@ def _unique_findings(groups, limit):
             selected_ids.add(item["id"])
             count -= 1
 
-    # Reserve category-balanced slots. When the caller asks for a larger
-    # candidate buffer, scale these quotas so rejected weak candidates can be
-    # replaced by later candidates from the same lanes.
+    # Scale source quotas with the larger backfill buffer so rejected weak items
+    # can be replaced by later candidates from the same lanes.
     quota_scale = max(1, (limit + 12) // 13)
     take(x_items, min(4 * quota_scale, limit))
     take(other_social, min(2 * quota_scale, max(0, limit - len(selected))))
@@ -190,10 +189,10 @@ def main():
             print(f"source_lane_error={label}: {exc}")
             groups.append([])
 
-    # Select a 2x candidate buffer: the editorial gate can reject thin or
-    # promotional source material, so do not let those rejections collapse a
-    # 13-item target to only one or two delivered findings.
-    candidate_limit = max(MAX_FEED_ITEMS, MAX_FEED_ITEMS * 2)
+    # Use a 6x candidate buffer, but stop writing immediately when the delivery
+    # target is reached. This lets the editorial gate replace weak candidates
+    # without lowering quality or fabricating posts to fill the feed.
+    candidate_limit = max(MAX_FEED_ITEMS, MAX_FEED_ITEMS * 6)
     selected = _unique_findings(groups, candidate_limit)
     print(f"findings_selected={len(selected)}")
     print(f"findings_delivery_target={MAX_FEED_ITEMS}")
