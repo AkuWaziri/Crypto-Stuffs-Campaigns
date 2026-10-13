@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
-from urllib.parse import quote
+from functools import lru_cache
+from urllib.parse import quote, urlparse
 import re
 import xml.etree.ElementTree as ET
 import requests
@@ -64,6 +65,41 @@ def _date(value):
             return None
 
 
+@lru_cache(maxsize=512)
+def _resolve_news_link(url):
+    """Convert Google News RSS wrapper links into publisher URLs before editorial review."""
+    if not url or "news.google.com/rss/articles/" not in url:
+        return url
+    try:
+        response = requests.get(
+            url,
+            headers={**HEADERS, "Accept": "text/html,application/xhtml+xml,*/*"},
+            timeout=10,
+            allow_redirects=True,
+        )
+        final_url = response.url or url
+        if urlparse(final_url).hostname not in {"news.google.com", "www.news.google.com"}:
+            return final_url
+        # Some Google News responses expose the publisher URL as a canonical link.
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(response.text, "html.parser")
+        canonical = soup.find("link", rel="canonical")
+        if canonical and canonical.get("href"):
+            candidate = canonical["href"]
+            if urlparse(candidate).hostname not in {"news.google.com", "www.news.google.com"}:
+                return candidate
+        for node in soup.select("a[href]"):
+            candidate = node.get("href", "")
+            host = urlparse(candidate).hostname or ""
+            if candidate.startswith("http") and host not in {
+                "news.google.com", "www.google.com", "google.com",
+            }:
+                return candidate
+    except Exception as exc:
+        print(f"news_link_resolve_skipped={type(exc).__name__}")
+    return url
+
+
 def _record(source, author, title, description, url, created):
     text = " ".join(f"{title} {description}".split())
     return {"id": f"{source}:{url}", "source": source, "author": author or source,
@@ -82,7 +118,7 @@ def _google_news(cutoff):
             root = ET.fromstring(response.content)
             for node in root.findall(".//item"):
                 title = node.findtext("title", "")
-                link = node.findtext("link", "")
+                link = _resolve_news_link(node.findtext("link", ""))
                 created = _date(node.findtext("pubDate", ""))
                 desc_node = node.find("description")
                 description = "".join(desc_node.itertext()) if desc_node is not None else ""
