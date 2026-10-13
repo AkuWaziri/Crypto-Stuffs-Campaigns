@@ -118,12 +118,12 @@ def _google_news(cutoff):
             root = ET.fromstring(response.content)
             for node in root.findall(".//item"):
                 title = node.findtext("title", "")
-                link = _resolve_news_link(node.findtext("link", ""))
+                link = node.findtext("link", "")
                 created = _date(node.findtext("pubDate", ""))
                 desc_node = node.find("description")
                 description = "".join(desc_node.itertext()) if desc_node is not None else ""
                 if link and created and created >= cutoff and USEFUL.search(f"{title} {description}"):
-                    found.append(_record("web", "web discovery", title, description, link, created))
+                    found.append(_record("web", "web discovery", title, description, _resolve_news_link(link), created))
         except Exception as exc:
             print(f"alpha_web_error={query}: {exc}")
     return found
@@ -243,7 +243,7 @@ def search_howto_research():
             root = ET.fromstring(response.content)
             for node in root.findall(".//item"):
                 title = node.findtext("title", "")
-                link = _resolve_news_link(node.findtext("link", ""))
+                link = node.findtext("link", "")
                 created = _date(node.findtext("pubDate", ""))
                 desc_node = node.find("description")
                 description = "".join(desc_node.itertext()) if desc_node is not None else ""
@@ -279,6 +279,7 @@ def search_howto_research():
                 )
                 if not (free_signal or topic_signal):
                     continue
+                link = _resolve_news_link(link)
                 seen_urls.add(link)
                 item = _record(
                     "howto_research",
@@ -327,7 +328,7 @@ def search_skill_showcase():
             root = ET.fromstring(response.content)
             for node in root.findall(".//item"):
                 title = node.findtext("title", "")
-                link = _resolve_news_link(node.findtext("link", ""))
+                link = node.findtext("link", "")
                 created = _date(node.findtext("pubDate", ""))
                 desc_node = node.find("description")
                 description = "".join(desc_node.itertext()) if desc_node is not None else ""
@@ -335,6 +336,7 @@ def search_skill_showcase():
                     continue
                 if not USEFUL.search(f"{title} {description}") and len(description.strip()) < 80:
                     continue
+                link = _resolve_news_link(link)
                 seen_urls.add(link)
                 item = _record(
                     "skill_research",
