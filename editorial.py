@@ -19,6 +19,11 @@ ARTICLE_TEXT_LIMIT = 2000
 MAX_GROQ_RETRY_WAIT_SECONDS = 30
 GROQ_RATE_LIMIT_RETRIES = 2
 SOCIAL_SNIPPET_LIMIT = 1000
+GROQ_DAILY_QUOTA_EXHAUSTED = False
+
+
+class GroqQuotaExhaustedError(RuntimeError):
+    """Raised when Groq daily token quota is exhausted for this run."""
 
 BASE_PROMPT = """You are the selective research editor for a high-signal crypto findings feed.
 
@@ -123,6 +128,9 @@ def write_finding(item):
 
     Returns None when the item does not pass the editorial gate.
     """
+    if GROQ_DAILY_QUOTA_EXHAUSTED:
+        print("groq_daily_quota_exhausted_skip=1")
+        return None
     url = str(item.get("url") or "").strip()
     if not url:
         raise ValueError("Cannot write a finding without a source URL")
@@ -261,6 +269,15 @@ def write_finding(item):
             status = getattr(exc, "status_code", None)
             if status is None:
                 status = getattr(getattr(exc, "response", None), "status_code", None)
+            error_text = str(exc).lower()
+            if status == 429 and (
+                "tokens per day" in error_text
+                or ("rate_limit_exceeded" in error_text and "token" in error_text)
+            ):
+                global GROQ_DAILY_QUOTA_EXHAUSTED
+                GROQ_DAILY_QUOTA_EXHAUSTED = True
+                print("groq_daily_quota_exhausted=1; stopping editorial calls for this run")
+                raise GroqQuotaExhaustedError("Groq daily token quota exhausted; stopped further editorial calls") from exc
             if status != 429 or attempt == GROQ_RATE_LIMIT_RETRIES - 1:
                 raise
             wait_seconds = min(2 ** (attempt + 1), MAX_GROQ_RETRY_WAIT_SECONDS)
