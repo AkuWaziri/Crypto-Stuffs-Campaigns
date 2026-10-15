@@ -16,6 +16,8 @@ DNA_PATH = Path(__file__).with_name("DNA.md")
 SKIP_MARKER = "SKIP_ITEM"
 ARTICLE_TIMEOUT_SECONDS = 8
 ARTICLE_TEXT_LIMIT = 2000
+MAX_GROQ_RETRY_WAIT_SECONDS = 30
+GROQ_RATE_LIMIT_RETRIES = 2
 SOCIAL_SNIPPET_LIMIT = 1000
 
 BASE_PROMPT = """You are the selective research editor for a high-signal crypto findings feed.
@@ -126,7 +128,11 @@ def write_finding(item):
         raise ValueError("Cannot write a finding without a source URL")
 
     source_text = clean_source_text(item.get("text"))
-    article_text = _fetch_article_text(url)
+    source_kind = str(item.get("source") or "").lower()
+    # Social posts are the primary evidence already; fetching each status URL
+    # adds latency and often returns an inaccessible shell instead of useful text.
+    social_sources = {"x", "x_social", "x_high_performance", "reddit", "telegram", "bluesky", "farcaster"}
+    article_text = "" if source_kind in social_sources else _fetch_article_text(url)
     is_skill_lane = item.get("content_lane") == "skill_showcase"
     is_howto_lane = item.get("content_lane") == "research_guides"
     source_material = {
@@ -247,7 +253,7 @@ def write_finding(item):
     response = None
     # Groq's free/on-demand token limits can return transient 429s during a
     # multi-item run. Retry instead of silently losing that candidate.
-    for attempt in range(5):
+    for attempt in range(GROQ_RATE_LIMIT_RETRIES):
         try:
             response = client.chat.completions.create(**request)
             break
@@ -255,13 +261,13 @@ def write_finding(item):
             status = getattr(exc, "status_code", None)
             if status is None:
                 status = getattr(getattr(exc, "response", None), "status_code", None)
-            if status != 429 or attempt == 4:
+            if status != 429 or attempt == GROQ_RATE_LIMIT_RETRIES - 1:
                 raise
-            wait_seconds = min(2 ** (attempt + 1), 30)
+            wait_seconds = min(2 ** (attempt + 1), MAX_GROQ_RETRY_WAIT_SECONDS)
             headers = getattr(getattr(exc, "response", None), "headers", {}) or {}
             retry_after = headers.get("retry-after")
             try:
-                wait_seconds = max(wait_seconds, float(retry_after))
+                wait_seconds = min(MAX_GROQ_RETRY_WAIT_SECONDS, max(wait_seconds, float(retry_after)))
             except (TypeError, ValueError):
                 pass
             print(f"groq_rate_limited_retry={attempt + 1} wait_seconds={wait_seconds}")
