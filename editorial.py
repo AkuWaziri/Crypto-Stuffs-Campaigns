@@ -230,11 +230,11 @@ def write_finding(item):
     # Keep generated output and GPT-OSS reasoning bounded. Guides get more
     # room than ordinary findings, but all calls have an explicit ceiling.
     if is_howto_lane:
-        output_token_limit = 900
+        output_token_limit = 400
     elif is_skill_lane:
-        output_token_limit = 650
+        output_token_limit = 300
     else:
-        output_token_limit = 450
+        output_token_limit = 300
 
     request = {
         "model": MODEL,
