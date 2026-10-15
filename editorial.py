@@ -128,6 +128,7 @@ def write_finding(item):
 
     Returns None when the item does not pass the editorial gate.
     """
+    global GROQ_DAILY_QUOTA_EXHAUSTED
     if GROQ_DAILY_QUOTA_EXHAUSTED:
         print("groq_daily_quota_exhausted_skip=1")
         return None
@@ -274,7 +275,6 @@ def write_finding(item):
                 "tokens per day" in error_text
                 or ("rate_limit_exceeded" in error_text and "token" in error_text)
             ):
-                global GROQ_DAILY_QUOTA_EXHAUSTED
                 GROQ_DAILY_QUOTA_EXHAUSTED = True
                 print("groq_daily_quota_exhausted=1; stopping editorial calls for this run")
                 raise GroqQuotaExhaustedError("Groq daily token quota exhausted; stopped further editorial calls") from exc
