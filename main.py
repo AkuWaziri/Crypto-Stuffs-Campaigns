@@ -6,7 +6,7 @@ os.environ.setdefault("VIRAL_SEEN_STATE_FILE", ".campaign_state.json")
 
 from config import HIGH_PERFORMANCE_MAX_ITEMS, LOOKBACK_HOURS, MAX_FEED_ITEMS
 from discovery import search_crypto_alpha, search_howto_research, search_skill_showcase
-from editorial import clean_source_text, write_finding
+from editorial import GroqQuotaExhaustedError, clean_source_text, write_finding
 from high_performance import _item_key, _url_key, _load_seen_ids, mark_sent, search_high_performing_x
 from telegram import send_message
 from web_sources import fetch_public_content
@@ -210,6 +210,9 @@ def main():
         source_counts[source] = source_counts.get(source, 0) + 1
         try:
             message = _format_finding(item)
+        except GroqQuotaExhaustedError as exc:
+            print(f"ai_writing_stopped={exc}")
+            break
         except Exception as exc:
             # Never degrade into raw reposts: skip when Groq cannot produce analysis.
             print(f"ai_writing_error={item['id']}: {exc}")
