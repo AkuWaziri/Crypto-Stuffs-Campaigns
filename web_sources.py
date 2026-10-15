@@ -93,7 +93,10 @@ def _rss(url, source):
 
 def _reddit():
     items = []
+    blocked = False
     for subreddit in REDDIT_SUBREDDITS:
+        if blocked:
+            break
         for query in CONTENT_QUERIES:
             url = f"https://www.reddit.com/r/{quote(subreddit)}/search.json?q={quote(query)}&restrict_sr=1&sort=new&t=month&limit=15"
             try:
@@ -111,6 +114,10 @@ def _reddit():
                                        urljoin("https://www.reddit.com", permalink), created, True))
             except Exception as exc:
                 print(f"reddit_error={subreddit}:{query}: {exc}")
+                if getattr(exc, "response", None) is not None and exc.response.status_code == 403:
+                    print(f"reddit_search_disabled_after_403={subreddit}")
+                    blocked = True
+                    break
     return items
 
 
@@ -168,7 +175,10 @@ def _farcaster():
 
 def _bluesky():
     items = []
+    blocked = False
     for query in BLUESKY_QUERIES:
+        if blocked:
+            break
         url = "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=" + quote(query) + "&limit=30"
         try:
             response = requests.get(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, timeout=20)
@@ -182,6 +192,9 @@ def _bluesky():
                 items.append(_item("bluesky", author, text, f"https://bsky.app/profile/{author}/post/{rkey}", record.get("createdAt"), True))
         except Exception as exc:
             print(f"bluesky_error={query}: {exc}")
+            if getattr(exc, "response", None) is not None and exc.response.status_code == 403:
+                print("bluesky_search_disabled_after_403=1")
+                blocked = True
     return items
 
 
