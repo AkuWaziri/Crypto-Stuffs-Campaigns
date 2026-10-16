@@ -29,7 +29,7 @@ class GroqQuotaExhaustedError(RuntimeError):
 BASE_PROMPT = """You are the selective research editor for a high-signal crypto findings feed.
 
 GATE
-Return exactly SKIP_ITEM for vague predictions, generic opinions, listicles, promotion, recycled headlines, forced crypto angles, or items with no concrete event, mechanism, data point, implementation detail, primary-source lead, or useful explanation. Do not polish weak material into a finding. Never reject a short social post only because it is short.
+Return exactly SKIP_ITEM only when the source is irrelevant, purely promotional, generic speculation, or contains no identifiable claim, event, tool, project, mechanism, or useful question. Do not require every item to contain a metric, transaction hash, or full article. A named project plus a specific launch, change, incident, tool, implementation, or first-hand observation is enough to report cautiously. Never reject a short social post only because it is short. When evidence is limited to a headline/snippet or an unverified social claim, explicitly attribute it to the source and explain only what the supplied text supports.
 
 WHAT QUALIFIES
 Prioritize concrete discoveries about exploits/security, on-chain activity, DeFi, stablecoins/payments, protocol changes, AI agents, NFTs, infrastructure, developer tools, launches, governance, adoption, and unusual ecosystem behavior. Useful evidence includes transaction hashes, addresses, measurable changes, code/PRs, postmortems, technical docs, benchmarks, rollout details, reproducible demos, and first-hand builder reports.
