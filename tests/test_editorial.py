@@ -118,3 +118,34 @@ def test_howto_research_prompt_requires_reproducible_steps_and_source(monkeypatc
     assert "free tier" in prompt
     assert "profit promise" in prompt
     assert result.endswith("Source: https://example.com/free-api-guide")
+
+
+
+def test_bing_news_redirect_is_unwrapped_to_publisher_url():
+    redirect = (
+        "http://www.bing.com/news/apiclick.aspx?ref=feed&url="
+        "https%3a%2f%2fexample.com%2fnews%2fthai-etf%3futm_source%3dfeed"
+    )
+    assert editorial._direct_source_url(redirect) == "https://example.com/news/thai-etf?utm_source=feed"
+
+
+def test_incomplete_editorial_output_is_rejected():
+    result = editorial._validate_generated_finding(
+        "October 16 marks the day the legal permission",
+        "https://example.com/regulatory-rules",
+    )
+    assert result is None
+
+
+def test_editorial_output_removes_model_sources_section_and_appends_one_source():
+    result = editorial._validate_generated_finding(
+        "The rule took effect on October 16, 2024. That did not confirm a specific ETF listing.\\n\\n"
+        "SOURCES\\n- Bing tracking link\\n- another source",
+        "https://example.com/regulatory-rules",
+    )
+    assert result == (
+        "The rule took effect on October 16, 2024. That did not confirm a specific ETF listing."
+        "\\n\\nSource: https://example.com/regulatory-rules"
+    )
+    assert result.count("Source:") == 1
+    assert "SOURCES" not in result
