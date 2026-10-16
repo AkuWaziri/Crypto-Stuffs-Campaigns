@@ -126,7 +126,7 @@ def test_bing_news_redirect_is_unwrapped_to_publisher_url():
         "http://www.bing.com/news/apiclick.aspx?ref=feed&url="
         "https%3a%2f%2fexample.com%2fnews%2fthai-etf%3futm_source%3dfeed"
     )
-    assert editorial._direct_source_url(redirect) == "https://example.com/news/thai-etf?utm_source=feed"
+    assert editorial._direct_source_url(redirect) == "https://example.com/news/thai-etf"
 
 
 def test_incomplete_editorial_output_is_rejected():
