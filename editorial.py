@@ -83,7 +83,7 @@ def _validate_generated_finding(value, source_url):
         if stripped.upper() in {"SOURCES", "REFERENCES"}:
             break
         kept.append(line)
-    body = " ".join(" ".join(kept).split()).strip(" \\t\\r\\n-")
+    body = " ".join(" ".join(kept).split()).strip(" \t\r\n-")
     if not body:
         return None
     if len(body) > 1800:
@@ -106,7 +106,7 @@ def _validate_generated_finding(value, source_url):
     }:
         print("editorial_output_rejected=dangling_last_word")
         return None
-    return f"{body}\\n\\nSource: {source_url}"
+    return f"{body}\n\nSource: {source_url}"
 
 
 def clean_source_text(value):
