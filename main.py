@@ -6,6 +6,7 @@ os.environ.setdefault("VIRAL_SEEN_STATE_FILE", ".campaign_state.json")
 
 from config import HIGH_PERFORMANCE_MAX_ITEMS, LOOKBACK_HOURS, MAX_FEED_ITEMS
 from discovery import search_crypto_alpha, search_howto_research, search_skill_showcase
+import editorial as editorial_module
 from editorial import GroqQuotaExhaustedError, clean_source_text, write_finding
 from high_performance import _item_key, _url_key, _load_seen_ids, mark_sent, search_high_performing_x
 from telegram import send_message
@@ -158,6 +159,45 @@ def _format_finding(item):
     return write_finding(item)
 
 
+def _quota_fallback_finding(item):
+    """Produce a clearly attributed, source-grounded brief when Groq quota is exhausted."""
+    text = clean_source_text(item.get("text") or "")
+    url = str(item.get("url") or "").strip()
+    if not text or not url:
+        return None
+
+    # Do not fall back to raw reposts for vague hype or empty headlines.
+    lower = text.lower()
+    vague = (
+        "gm everyone", "good morning", "huge news", "this is bullish",
+        "game changer", "mass adoption is coming", "don't miss out",
+    )
+    concrete = (
+        "0x", "transaction", "exploit", "hack", "vulnerab", "launch", "launched",
+        "release", "released", "upgrade", "proposal", "mainnet", "testnet",
+        "wallet", "protocol", "api", "sdk", "fees", "revenue", "volume",
+        "users", "million", "billion", "%", "stablecoin", "payment",
+        "deploy", "open source", "documentation", "how to", "guide", "tutorial",
+        "points", "governance", "bridge", "liquidity", "agent",
+    )
+    if any(term in lower for term in vague) and not any(term in lower for term in concrete):
+        return None
+    if len(text) < 45 or not any(term in lower for term in concrete):
+        return None
+
+    # Preserve only what the source supplied; do not fabricate steps, metrics, or conclusions.
+    excerpt = text[:850].rstrip()
+    if len(text) > 850:
+        excerpt = excerpt.rsplit(" ", 1)[0].rstrip(" ,;:-") + "…"
+    return (
+        "Source-led research brief (AI analysis unavailable because the Groq token quota was exhausted):\n\n"
+        f"{excerpt}\n\n"
+        "Treat this as a lead reported by the linked source, not independently verified analysis. "
+        "Check the original source for full context before acting.\n\n"
+        f"Source: {url}"
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description="Crypto-Stuffs-Campaigns")
     parser.add_argument("--telegram", action="store_true")
@@ -203,20 +243,25 @@ def main():
 
     source_counts = {}
     delivered_items = []
+    groq_unavailable = False
     for item in selected:
         if len(delivered_items) >= MAX_FEED_ITEMS:
             break
         source = item.get("source", "unknown")
         source_counts[source] = source_counts.get(source, 0) + 1
         try:
-            message = _format_finding(item)
+            message = _quota_fallback_finding(item) if groq_unavailable else _format_finding(item)
         except GroqQuotaExhaustedError as exc:
-            print(f"ai_writing_stopped={exc}")
-            break
+            print(f"ai_writing_stopped={exc}; switching to clearly attributed source briefs")
+            groq_unavailable = True
+            message = _quota_fallback_finding(item)
         except Exception as exc:
             # Never degrade into raw reposts: skip when Groq cannot produce analysis.
             print(f"ai_writing_error={item['id']}: {exc}")
             continue
+        if message is None and (groq_unavailable or editorial_module.GROQ_DAILY_QUOTA_EXHAUSTED):
+            groq_unavailable = True
+            message = _quota_fallback_finding(item)
         if message is None:
             print(f"editorial_gate_skip={item['id']}: no substantive finding in available source material")
             continue
