@@ -1,5 +1,6 @@
 """Groq-powered research and editorial gate for original crypto findings."""
 import json
+import re
 import os
 import time
 from functools import lru_cache
@@ -74,7 +75,7 @@ def _validate_generated_finding(value, source_url):
     raw = unescape(str(value or ""))
     # Remove the model's source dump before HTML cleanup collapses line breaks.
     raw = re.split(
-        r"(?im)^\\s*(?:SOURCES|REFERENCES|Source:.*|Sources:.*|References:.*)\\s*$",
+        r"(?im)^\s*(?:SOURCES|REFERENCES|Source:.*|Sources:.*|References:.*)\s*$",
         raw,
         maxsplit=1,
     )[0]
