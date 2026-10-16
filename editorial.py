@@ -55,7 +55,7 @@ def _direct_source_url(url):
                     candidate = unescape(candidate).strip()
                     target = urlparse(candidate)
                     if target.scheme in {"http", "https"} and target.hostname:
-                        return candidate
+                        return _direct_source_url(candidate)
         if parsed.scheme in {"http", "https"} and parsed.hostname:
             tracking = {"fbclid", "gclid", "mc_cid", "mc_eid", "ref_src", "ref_url"}
             kept = []
