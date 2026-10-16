@@ -5,7 +5,7 @@ import time
 from functools import lru_cache
 from html import unescape
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse, urlunparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -40,6 +40,74 @@ STYLE
 Follow the user's human writing DNA in DNA.md. Lead with the finding; write natural, concise, varied crypto-native English, usually 2–5 sentences. Avoid generic AI/corporate language, fake hype, forced slang, repeated templates, decorative emojis, HTML, and RSS boilerplate. How-to guides must contain reproducible steps supported by the source; do not invent pricing, eligibility, rewards, or free-tier terms. Skill-led posts must not invent the user's credentials or experience. Security guidance must be defensive or authorized.
 
 Return only a Telegram-ready finding or exactly SKIP_ITEM. End every finding with one separate line: Source: <the exact original URL>."""
+
+
+def _direct_source_url(url):
+    """Unwrap common news/search tracking links when they expose the publisher URL."""
+    raw = str(url or "").strip()
+    try:
+        parsed = urlparse(raw)
+        host = (parsed.hostname or "").lower()
+        query = parse_qs(parsed.query)
+        if host.endswith("bing.com") and parsed.path.startswith("/news/apiclick.aspx"):
+            for key in ("url", "u", "target"):
+                for candidate in query.get(key, []):
+                    candidate = unescape(candidate).strip()
+                    target = urlparse(candidate)
+                    if target.scheme in {"http", "https"} and target.hostname:
+                        return candidate
+        if parsed.scheme in {"http", "https"} and parsed.hostname:
+            tracking = {"fbclid", "gclid", "mc_cid", "mc_eid", "ref_src", "ref_url"}
+            kept = []
+            for part in parsed.query.split("&") if parsed.query else []:
+                key = part.split("=", 1)[0].lower()
+                if key not in tracking and not key.startswith("utm_"):
+                    kept.append(part)
+            return urlunparse(parsed._replace(query="&".join(kept), fragment=""))
+    except Exception:
+        pass
+    return raw
+
+
+def _validate_generated_finding(value, source_url):
+    """Reject broken/truncated, bloated, or source-dump outputs before delivery."""
+    text = clean_source_text(value)
+    if not text or text.strip().upper().startswith(SKIP_MARKER):
+        return None
+
+    kept = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.lower().startswith(("source:", "sources:", "references:")):
+            break
+        if stripped.upper() in {"SOURCES", "REFERENCES"}:
+            break
+        kept.append(line)
+    body = " ".join(" ".join(kept).split()).strip(" \\t\\r\\n-")
+    if not body:
+        return None
+    if len(body) > 1800:
+        print(f"editorial_output_rejected=too_long chars={len(body)}")
+        return None
+    if body.count("http://") + body.count("https://") > 2:
+        print("editorial_output_rejected=multiple_embedded_links")
+        return None
+    if "**" in body or "###" in body:
+        print("editorial_output_rejected=formatted_report")
+        return None
+    if body[-1:] not in ".!?”’\\\"')]}":
+        print("editorial_output_rejected=incomplete_ending")
+        return None
+    last_words = body.rstrip(".!?”’\\\"')]}").lower().split()
+    if last_words and last_words[-1] in {
+        "a", "an", "and", "are", "as", "at", "because", "but", "by", "for",
+        "from", "if", "in", "into", "is", "of", "on", "or", "that", "the",
+        "to", "was", "were", "with", "without", "while",
+    }:
+        print("editorial_output_rejected=dangling_last_word")
+        return None
+    return f"{body}\\n\\nSource: {source_url}"
+
 
 def clean_source_text(value):
     """Strip HTML/XML markup and decode entities before editorial generation."""
@@ -297,9 +365,5 @@ def write_finding(item):
     if text.strip().upper() == SKIP_MARKER or text.strip().upper().startswith(SKIP_MARKER + " "):
         return None
 
-    # Enforce the exact original URL once, even if the model omitted or altered it.
-    text = text.replace(url, "").strip()
-    text = text.removesuffix("Source:").strip()
-    if not text or text.strip().upper() == SKIP_MARKER:
-        return None
-    return f"{text}\n\nSource: {url}"
+    # Validate the generated body before delivery, then append one clean direct source link.
+    return _validate_generated_finding(text, url)
