@@ -71,7 +71,14 @@ def _direct_source_url(url):
 
 def _validate_generated_finding(value, source_url):
     """Reject broken/truncated, bloated, or source-dump outputs before delivery."""
-    text = clean_source_text(value)
+    raw = unescape(str(value or ""))
+    # Remove the model's source dump before HTML cleanup collapses line breaks.
+    raw = re.split(
+        r"(?im)^\\s*(?:SOURCES|REFERENCES|Source:.*|Sources:.*|References:.*)\\s*$",
+        raw,
+        maxsplit=1,
+    )[0]
+    text = clean_source_text(raw)
     if not text or text.strip().upper().startswith(SKIP_MARKER):
         return None
 
