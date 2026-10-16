@@ -139,13 +139,13 @@ def test_incomplete_editorial_output_is_rejected():
 
 def test_editorial_output_removes_model_sources_section_and_appends_one_source():
     result = editorial._validate_generated_finding(
-        "The rule took effect on October 16, 2024. That did not confirm a specific ETF listing.\\n\\n"
-        "SOURCES\\n- Bing tracking link\\n- another source",
+        "The rule took effect on October 16, 2024. That did not confirm a specific ETF listing.\n\n"
+        "SOURCES\n- Bing tracking link\n- another source",
         "https://example.com/regulatory-rules",
     )
     assert result == (
         "The rule took effect on October 16, 2024. That did not confirm a specific ETF listing."
-        "\\n\\nSource: https://example.com/regulatory-rules"
+        "\n\nSource: https://example.com/regulatory-rules"
     )
     assert result.count("Source:") == 1
     assert "SOURCES" not in result
