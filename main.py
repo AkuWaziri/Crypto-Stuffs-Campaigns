@@ -1,6 +1,8 @@
 import argparse
 import os
 from datetime import datetime, timedelta, timezone
+from difflib import SequenceMatcher
+import re
 
 os.environ.setdefault("VIRAL_SEEN_STATE_FILE", ".campaign_state.json")
 
@@ -8,7 +10,7 @@ from config import HIGH_PERFORMANCE_MAX_ITEMS, LOOKBACK_HOURS, MAX_FEED_ITEMS
 from discovery import search_crypto_alpha, search_howto_research, search_skill_showcase
 import editorial as editorial_module
 from editorial import GroqQuotaExhaustedError, clean_source_text, write_finding
-from high_performance import _item_key, _url_key, _load_seen_ids, mark_sent, search_high_performing_x
+from high_performance import _item_key, _url_key, _load_seen_ids, _load_seen_texts, mark_sent, search_high_performing_x
 from telegram import send_message
 from web_sources import fetch_public_content
 
@@ -53,12 +55,43 @@ def _sort_key(item):
     return created.timestamp() if created else 0
 
 
+def _normalized_content(value):
+    text = str(value or "").lower()
+    text = re.sub(r"https?://\S+", " ", text)
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return " ".join(text.split())
+
+
+def _near_duplicate(text, history):
+    """Catch repeated headlines/posts with different URLs or RSS snippets."""
+    normalized = _normalized_content(text)
+    if len(normalized) < 55:
+        return False
+    tokens = {word for word in normalized.split() if len(word) > 2}
+    if len(tokens) < 8:
+        return False
+    for old in history:
+        if not old or len(old) < 55:
+            continue
+        if normalized == old:
+            return True
+        old_tokens = {word for word in old.split() if len(word) > 2}
+        if len(old_tokens) < 8:
+            continue
+        overlap = len(tokens & old_tokens) / max(1, len(tokens | old_tokens))
+        if overlap >= 0.78 or SequenceMatcher(None, normalized[:240], old[:240]).ratio() >= 0.88:
+            return True
+    return False
+
+
 def _unique_findings(groups, limit):
-    """Deduplicate first, then deliberately balance social findings and web research."""
+    """Deduplicate exact and near-identical findings before source balancing."""
     seen = _load_seen_ids()
+    history = _load_seen_texts()
     cutoff = datetime.now(timezone.utc) - timedelta(hours=LOOKBACK_HOURS)
     candidates = []
     local_ids, local_keys, local_urls = set(), set(), set()
+    local_texts = set()
 
     for group in groups:
         for raw in group:
@@ -76,15 +109,19 @@ def _unique_findings(groups, limit):
             item["text"] = text
             key = _item_key(item)
             url_key = _url_key(item)
+            normalized_text = _normalized_content(text)
             if (
                 item_id in seen or key in seen or (url_key and url_key in seen)
                 or item_id in local_ids or key in local_keys
                 or (url_key and url_key in local_urls)
+                or _near_duplicate(text, history)
+                or _near_duplicate(text, local_texts)
             ):
                 continue
 
             local_ids.add(item_id)
             local_keys.add(key)
+            local_texts.add(normalized_text)
             if url_key:
                 local_urls.add(url_key)
             candidates.append(item)
@@ -271,6 +308,7 @@ def main():
             print(f"delivery_error={item['id']}: {exc}")
             continue
         if delivered:
+            item["_delivered_text"] = message
             delivered_items.append(item)
 
     if delivered_items:
