@@ -65,10 +65,12 @@ def _normalized_content(value):
 def _near_duplicate(text, history):
     """Catch repeated headlines/posts with different URLs or RSS snippets."""
     normalized = _normalized_content(text)
-    if len(normalized) < 55:
+    # Keep this fuzzy gate for substantial snippets; short titles are too
+    # noisy and can share generic crypto vocabulary without being duplicates.
+    if len(normalized) < 90:
         return False
     tokens = {word for word in normalized.split() if len(word) > 2}
-    if len(tokens) < 8:
+    if len(tokens) < 10:
         return False
     for old in history:
         if not old or len(old) < 55:
