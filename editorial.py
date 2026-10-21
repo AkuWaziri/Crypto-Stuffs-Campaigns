@@ -10,7 +10,7 @@ from urllib.parse import parse_qs, urlparse, urlunparse
 
 import requests
 from bs4 import BeautifulSoup
-from openai import OpenAI
+from groq import Groq
 
 MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 DNA_PATH = Path(__file__).with_name("DNA.md")
@@ -196,7 +196,7 @@ def _client():
     key = os.getenv("GROQ_API_KEY", "").strip()
     if not key:
         raise RuntimeError("GROQ_API_KEY secret is missing")
-    return OpenAI(api_key=key, base_url="https://api.groq.com/openai/v1")
+    return Groq(api_key=key)
 
 
 def write_finding(item):
