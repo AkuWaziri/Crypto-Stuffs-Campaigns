@@ -186,34 +186,49 @@ def _url_key(item):
     url = _canonical_url(item.get("url", ""))
     return "url:" + hashlib.sha256(url.encode("utf-8")).hexdigest() if url else ""
 
-def _load_seen_ids():
+def _read_seen_state():
     try:
         with open(SEEN_STATE_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-        ids = {str(x) for x in data.get("sent_ids", []) if x}
-        keys = {str(x) for x in data.get("sent_keys", []) if x}
-        # Migrate older state files: previously sent URLs were only stored inside
-        # source IDs, often with RSS tracking parameters attached.
-        for item_id in ids:
-            match = re.search(r"https?://\S+", item_id)
-            if match:
-                normalized = _canonical_url(match.group(0))
-                if normalized:
-                    keys.add("url:" + hashlib.sha256(normalized.encode("utf-8")).hexdigest())
-        return ids | keys
+        return data if isinstance(data, dict) else {}
     except (FileNotFoundError, json.JSONDecodeError, OSError):
-        return set()
+        return {}
+
+
+def _load_seen_ids():
+    data = _read_seen_state()
+    ids = {str(x) for x in data.get("sent_ids", []) if x}
+    keys = {str(x) for x in data.get("sent_keys", []) if x}
+    # Migrate older state files: previously sent URLs were only stored inside
+    # source IDs, often with RSS tracking parameters attached.
+    for item_id in ids:
+        match = re.search(r"https?://\S+", item_id)
+        if match:
+            normalized = _canonical_url(match.group(0))
+            if normalized:
+                keys.add("url:" + hashlib.sha256(normalized.encode("utf-8")).hexdigest())
+    return ids | keys
+
+
+def _normalize_seen_text(value):
+    text = str(value or "").lower()
+    text = re.sub(r"https?://\S+", " ", text)
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return " ".join(text.split())
+
+
+def _load_seen_texts():
+    """Read the rolling text history used to catch repeated stories across URLs."""
+    data = _read_seen_state()
+    return [_normalize_seen_text(value) for value in data.get("sent_texts", []) if value]
+
 
 def mark_sent(items):
     """Persist both source IDs and content fingerprints after Telegram accepts delivery."""
-    try:
-        with open(SEEN_STATE_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError, OSError):
-        data = {}
-
+    data = _read_seen_state()
     ids = {str(x) for x in data.get("sent_ids", []) if x}
     keys = {str(x) for x in data.get("sent_keys", []) if x}
+    texts = [str(x) for x in data.get("sent_texts", []) if x]
 
     for item in items:
         if isinstance(item, dict):
@@ -224,12 +239,19 @@ def mark_sent(items):
             url_key = _url_key(item)
             if url_key:
                 keys.add(url_key)
+            source_text = _normalize_seen_text(item.get("text", ""))
+            delivered_text = _normalize_seen_text(item.get("_delivered_text", ""))
+            if len(source_text) >= 55:
+                texts.append(source_text)
+            if len(delivered_text) >= 55:
+                texts.append(delivered_text)
         elif item:
             ids.add(str(item))
 
     data = {
         "sent_ids": list(ids)[-SEEN_STATE_LIMIT:],
         "sent_keys": list(keys)[-SEEN_STATE_LIMIT:],
+        "sent_texts": list(dict.fromkeys(texts))[-2000:],
     }
     tmp = f"{SEEN_STATE_FILE}.tmp"
     with open(tmp, "w", encoding="utf-8") as f:
