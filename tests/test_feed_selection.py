@@ -85,3 +85,40 @@ def test_selection_reserves_howto_and_skill_research_without_exceeding_cap(monke
     assert sum(entry["source"] == "howto_research" for entry in selected) == 3
     assert sum(entry["source"] == "skill_research" for entry in selected) == 2
     assert all(entry["source"] != "github" for entry in selected)
+
+
+
+def test_near_duplicate_story_with_different_urls_is_filtered(monkeypatch):
+    monkeypatch.setattr(main, "_load_seen_ids", lambda: set())
+    monkeypatch.setattr(main, "_load_seen_texts", lambda: [])
+    first = item(
+        "web", 1,
+        text="Protocol deploys a new stablecoin payment router that reduces settlement delays and improves transaction monitoring for merchants.",
+        url="https://news.example.com/story-a",
+    )
+    second = item(
+        "medium", 2,
+        text="A new stablecoin payment router was deployed by the protocol to reduce settlement delays and improve transaction monitoring for merchants.",
+        url="https://medium.example.com/story-b",
+    )
+    selected = main._unique_findings([[first], [second]], 10)
+    assert len(selected) == 1
+
+
+def test_sent_text_history_is_persisted_for_future_runs(monkeypatch, tmp_path):
+    import high_performance
+
+    state_file = tmp_path / "campaign_state.json"
+    monkeypatch.setattr(high_performance, "SEEN_STATE_FILE", str(state_file))
+    delivered = item(
+        "web", 9,
+        text="Protocol launches a new stablecoin payment router with public transaction monitoring and merchant settlement tools.",
+    )
+    delivered["_delivered_text"] = (
+        "The protocol launched a stablecoin payment router with public transaction monitoring and merchant settlement tools.\n\n"
+        f"Source: {delivered['url']}"
+    )
+    high_performance.mark_sent([delivered])
+    history = high_performance._load_seen_texts()
+    assert any("protocol launches a new stablecoin payment router" in text for text in history)
+    assert any("public transaction monitoring" in text for text in history)
