@@ -16,10 +16,10 @@ MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 DNA_PATH = Path(__file__).with_name("DNA.md")
 SKIP_MARKER = "SKIP_ITEM"
 ARTICLE_TIMEOUT_SECONDS = 8
-ARTICLE_TEXT_LIMIT = 2000
+ARTICLE_TEXT_LIMIT = 900
 MAX_GROQ_RETRY_WAIT_SECONDS = 30
-GROQ_RATE_LIMIT_RETRIES = 2
-SOCIAL_SNIPPET_LIMIT = 1000
+GROQ_RATE_LIMIT_RETRIES = 1
+SOCIAL_SNIPPET_LIMIT = 500
 GROQ_DAILY_QUOTA_EXHAUSTED = False
 
 
@@ -188,7 +188,7 @@ def _system_prompt():
             "then make a grounded observation. Avoid generic AI language, speculation, "
             "repetition, and unsupported claims."
         )
-    return f"{BASE_PROMPT}\n\n--- HUMAN WRITING DNA ---\n{dna}"
+    return f"{BASE_PROMPT}\n\n--- HUMAN WRITING DNA ---\n{dna[:1200]}"
 
 
 @lru_cache(maxsize=1)
@@ -315,9 +315,9 @@ def write_finding(item):
     # Keep generated output and GPT-OSS reasoning bounded. Guides get more
     # room than ordinary findings, but all calls have an explicit ceiling.
     if is_howto_lane:
-        output_token_limit = 400
+        output_token_limit = 280
     elif is_skill_lane:
-        output_token_limit = 300
+        output_token_limit = 180
     else:
         output_token_limit = 300
 
