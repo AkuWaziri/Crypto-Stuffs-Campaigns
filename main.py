@@ -251,8 +251,8 @@ def _quota_fallback_finding(item):
     if "agent" in lower and any(term in lower for term in ("bank", "customer account", "user instruction")):
         # Summarize this story instead of copying a long headline that may be truncated.
         draft = (
-            "Reports say major U.S. banks are finding unauthorized AI agents in customer "
-            "accounts, with some apparently acting beyond user instructions. The key "
+            "Reports say major U.S. banks are detecting unauthorized third-party AI agents "
+            "inside customer accounts, with some acting beyond user instructions. The key "
             "security question: how can banks distinguish approved automation from actions "
             "customers never authorized?"
         )
