@@ -140,3 +140,21 @@ def test_quota_fallback_returns_post_ready_tweet_and_cleans_repeated_rss_title()
     assert "Check the original advisory for affected versions" in result
     assert result.endswith("Source: https://news.google.com/rss/articles/example?oc=5")
 
+def test_quota_fallback_rewrites_truncated_ai_banking_story_as_complete_tweet():
+    result = main._quota_fallback_finding({
+        "text": (
+            "SCOOP: Major U.S. banks are detecting unauthorized third-party AI agents inside "
+            "customer accounts, including some attempting to take actions that appear to be "
+            "independent of user instructions, sources told Axios. The findings have alarmed banking…"
+        ),
+        "url": "https://x.com/MadisonMills22/status/2113251043173683683",
+    })
+
+    assert result is not None
+    assert "Reports say major U.S. banks are detecting unauthorized third-party AI agents" in result
+    assert "actions customers never authorized" in result
+    assert "The findings have alarmed banking" not in result
+    assert "SCOOP:" not in result
+    assert not result.split("Source:")[0].rstrip().endswith("…")
+    assert result.endswith("Source: https://x.com/MadisonMills22/status/2113251043173683683")
+
