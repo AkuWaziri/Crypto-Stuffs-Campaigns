@@ -122,3 +122,21 @@ def test_sent_text_history_is_persisted_for_future_runs(monkeypatch, tmp_path):
     history = high_performance._load_seen_texts()
     assert any("protocol launches a new stablecoin payment router" in text for text in history)
     assert any("public transaction monitoring" in text for text in history)
+
+def test_quota_fallback_returns_post_ready_tweet_and_cleans_repeated_rss_title():
+    source = (
+        "Binance founder CZ warns crypto users over critical PHP security flaws - Crypto News "
+        "Binance founder CZ warns crypto users over critical PHP security flaws Crypto News"
+    )
+    result = main._quota_fallback_finding({
+        "text": source,
+        "url": "https://news.google.com/rss/articles/example?oc=5",
+    })
+
+    assert result is not None
+    assert result.startswith("Tweet draft (Groq temporarily unavailable):")
+    assert "Source-led research brief" not in result
+    assert result.count("Binance founder CZ warns crypto users over critical PHP security flaws") == 1
+    assert "Check the original advisory for affected versions" in result
+    assert result.endswith("Source: https://news.google.com/rss/articles/example?oc=5")
+
