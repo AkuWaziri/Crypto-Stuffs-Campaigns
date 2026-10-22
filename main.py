@@ -199,21 +199,29 @@ def _format_finding(item):
 
 
 def _quota_fallback_finding(item):
-    """Create a concise, post-ready tweet draft when Groq is temporarily unavailable."""
+    """Create a complete, concise tweet draft without copying truncated RSS prose."""
     text = clean_source_text(item.get("text") or "")
     url = str(item.get("url") or "").strip()
     if not text or not url:
         return None
 
-    # RSS providers often append the publisher name and repeat the same headline.
+    # RSS feeds often repeat titles, append publisher names, or end mid-sentence.
     headline = re.split(r"\s+-\s+", text, maxsplit=1)[0].strip()
+    if "…" in headline or "..." in headline:
+        boundary = max(headline.rfind(". "), headline.rfind("! "), headline.rfind("? "))
+        if boundary > 30:
+            headline = headline[:boundary + 1]
+        else:
+            headline = re.split(r"(?:…|\.{3})", headline, maxsplit=1)[0].strip()
+    headline = re.sub(r"^(?:SCOOP|BREAKING|JUST IN|EXCLUSIVE)\s*:\s*", "", headline, flags=re.I)
+    headline = re.sub(r",?\s*sources? told [A-Z][A-Za-z0-9 .&-]+[.!]?$", "", headline, flags=re.I).strip(" .,:;-")
+
     words = headline.split()
-    # Collapse a repeated contiguous phrase without disturbing normal headlines.
     for size in range(len(words) // 2, 5, -1):
         removed = False
-        for start in range(0, len(words) - (2 * size) + 1):
-            if words[start:start + size] == words[start + size:start + (2 * size)]:
-                words = words[:start + size] + words[start + (2 * size):]
+        for start_idx in range(0, len(words) - (2 * size) + 1):
+            if words[start_idx:start_idx + size] == words[start_idx + size:start_idx + (2 * size)]:
+                words = words[:start_idx + size] + words[start_idx + (2 * size):]
                 removed = True
                 break
         if removed:
@@ -232,22 +240,31 @@ def _quota_fallback_finding(item):
         "protocol", "api", "sdk", "fees", "revenue", "volume", "users",
         "million", "billion", "%", "stablecoin", "payment", "deploy",
         "open source", "documentation", "how to", "guide", "tutorial",
-        "points", "governance", "bridge", "liquidity", "agent",
+        "points", "governance", "bridge", "liquidity", "agent", "bank",
+        "account",
     )
     if any(term in lower for term in vague) and not any(term in lower for term in concrete):
         return None
     if len(headline) < 35 or not any(term in lower for term in concrete):
         return None
 
-    # The fallback is a usable draft, not a research report or an assertion of verification.
-    if any(term in lower for term in ("security flaw", "security flaws", "vulnerab", "exploit", "hack")):
+    if "agent" in lower and any(term in lower for term in ("bank", "customer account", "user instruction")):
+        claim = headline[0].lower() + headline[1:] if headline else headline
+        draft = (
+            f"Reports say {claim.rstrip('.')} . "
+            "The key security question is how banks distinguish user-approved automation "
+            "from actions customers never authorized."
+        ).replace(" .", ".")
+    elif any(term in lower for term in ("security flaw", "security flaws", "vulnerab", "exploit", "hack")):
         draft = f"Security note: {headline}. Check the original advisory for affected versions and available fixes before assuming a service is safe."
     else:
-        draft = f"Worth tracking: {headline}. Check the source for the full details and what changed before acting."
+        draft = f"{headline.rstrip('.')} is worth tracking. Verify the source details and who is affected before acting."
     if len(draft) > 275:
         draft = draft[:272].rsplit(" ", 1)[0].rstrip(" ,;:-") + "…"
+    draft = draft.rstrip(" .,:;-…")
+    if not draft or draft.lower().split()[-1] in {"and", "or", "but", "with", "to", "for", "the", "a", "an", "of"}:
+        return None
     return f"Tweet draft (Groq temporarily unavailable):\n\n{draft}\n\nSource: {url}"
-
 
 def main():
     parser = argparse.ArgumentParser(description="Crypto-Stuffs-Campaigns")
