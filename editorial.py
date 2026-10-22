@@ -319,7 +319,7 @@ def write_finding(item):
     elif is_skill_lane:
         output_token_limit = 180
     else:
-        output_token_limit = 300
+        output_token_limit = 180
 
     request = {
         "model": MODEL,
