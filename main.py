@@ -206,7 +206,7 @@ def _quota_fallback_finding(item):
         return None
 
     # RSS providers often append the publisher name and repeat the same headline.
-    headline = re.split(r"\\s+-\\s+", text, maxsplit=1)[0].strip()
+    headline = re.split(r"\s+-\s+", text, maxsplit=1)[0].strip()
     words = headline.split()
     # Collapse a repeated contiguous phrase without disturbing normal headlines.
     for size in range(len(words) // 2, 5, -1):
@@ -246,7 +246,7 @@ def _quota_fallback_finding(item):
         draft = f"Worth tracking: {headline}. Check the source for the full details and what changed before acting."
     if len(draft) > 275:
         draft = draft[:272].rsplit(" ", 1)[0].rstrip(" ,;:-") + "…"
-    return f"Tweet draft (Groq temporarily unavailable):\\n\\n{draft}\\n\\nSource: {url}"
+    return f"Tweet draft (Groq temporarily unavailable):\n\n{draft}\n\nSource: {url}"
 
 
 def main():
