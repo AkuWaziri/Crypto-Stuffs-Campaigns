@@ -199,42 +199,54 @@ def _format_finding(item):
 
 
 def _quota_fallback_finding(item):
-    """Produce a clearly attributed, source-grounded brief when Groq quota is exhausted."""
+    """Create a concise, post-ready tweet draft when Groq is temporarily unavailable."""
     text = clean_source_text(item.get("text") or "")
     url = str(item.get("url") or "").strip()
     if not text or not url:
         return None
 
-    # Do not fall back to raw reposts for vague hype or empty headlines.
-    lower = text.lower()
+    # RSS providers often append the publisher name and repeat the same headline.
+    headline = re.split(r"\\s+-\\s+", text, maxsplit=1)[0].strip()
+    words = headline.split()
+    # Collapse a repeated contiguous phrase without disturbing normal headlines.
+    for size in range(len(words) // 2, 5, -1):
+        removed = False
+        for start in range(0, len(words) - (2 * size) + 1):
+            if words[start:start + size] == words[start + size:start + (2 * size)]:
+                words = words[:start + size] + words[start + (2 * size):]
+                removed = True
+                break
+        if removed:
+            break
+    headline = " ".join(words).strip(" -|")
+    lower = headline.lower()
+
     vague = (
         "gm everyone", "good morning", "huge news", "this is bullish",
         "game changer", "mass adoption is coming", "don't miss out",
     )
     concrete = (
-        "0x", "transaction", "exploit", "hack", "vulnerab", "launch", "launched",
-        "release", "released", "upgrade", "proposal", "mainnet", "testnet",
-        "wallet", "protocol", "api", "sdk", "fees", "revenue", "volume",
-        "users", "million", "billion", "%", "stablecoin", "payment",
-        "deploy", "open source", "documentation", "how to", "guide", "tutorial",
+        "0x", "transaction", "exploit", "hack", "vulnerab", "security flaw",
+        "security flaws", "warn", "warning", "launch", "launched", "release",
+        "released", "upgrade", "proposal", "mainnet", "testnet", "wallet",
+        "protocol", "api", "sdk", "fees", "revenue", "volume", "users",
+        "million", "billion", "%", "stablecoin", "payment", "deploy",
+        "open source", "documentation", "how to", "guide", "tutorial",
         "points", "governance", "bridge", "liquidity", "agent",
     )
     if any(term in lower for term in vague) and not any(term in lower for term in concrete):
         return None
-    if len(text) < 45 or not any(term in lower for term in concrete):
+    if len(headline) < 35 or not any(term in lower for term in concrete):
         return None
 
-    # Preserve only what the source supplied; do not fabricate steps, metrics, or conclusions.
-    excerpt = text[:850].rstrip()
-    if len(text) > 850:
-        excerpt = excerpt.rsplit(" ", 1)[0].rstrip(" ,;:-") + "…"
-    return (
-        "Source-led research brief (AI analysis unavailable because the Groq token quota was exhausted):\n\n"
-        f"{excerpt}\n\n"
-        "Treat this as a lead reported by the linked source, not independently verified analysis. "
-        "Check the original source for full context before acting.\n\n"
-        f"Source: {url}"
-    )
+    # The fallback is a usable draft, not a research report or an assertion of verification.
+    if any(term in lower for term in ("security flaw", "security flaws", "vulnerab", "exploit", "hack")):
+        draft = f"Security note: {headline}. Check the original advisory for affected versions and available fixes before assuming a service is safe."
+    else:
+        draft = f"Worth tracking: {headline}. Check the source for the full details and what changed before acting."
+    if len(draft) > 275:
+        draft = draft[:272].rsplit(" ", 1)[0].rstrip(" ,;:-") + "…"
+    return f"Tweet draft (Groq temporarily unavailable):\\n\\n{draft}\\n\\nSource: {url}"
 
 
 def main():
