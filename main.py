@@ -283,7 +283,10 @@ def main():
     # Use a 6x candidate buffer, but stop writing immediately when the delivery
     # target is reached. This lets the editorial gate replace weak candidates
     # without lowering quality or fabricating posts to fill the feed.
-    candidate_limit = max(MAX_FEED_ITEMS, MAX_FEED_ITEMS * 6)
+    # Keep a small backfill pool so editorial screening cannot fan out into dozens
+    # of token-consuming model calls.
+    candidate_limit = max(MAX_FEED_ITEMS, MAX_FEED_ITEMS * 2)
+    max_groq_calls = max(1, int(os.getenv("MAX_GROQ_CALLS_PER_RUN", "12")))
     selected = _unique_findings(groups, candidate_limit)
     print(f"findings_selected={len(selected)}")
     print(f"findings_delivery_target={MAX_FEED_ITEMS}")
@@ -295,13 +298,21 @@ def main():
     source_counts = {}
     delivered_items = []
     groq_unavailable = False
+    groq_calls = 0
     for item in selected:
         if len(delivered_items) >= MAX_FEED_ITEMS:
             break
         source = item.get("source", "unknown")
         source_counts[source] = source_counts.get(source, 0) + 1
+        if not groq_unavailable and groq_calls >= max_groq_calls:
+            groq_unavailable = True
+            print(f"groq_call_budget_reached={max_groq_calls}; using low-token fallback for remaining candidates")
         try:
-            message = _quota_fallback_finding(item) if groq_unavailable else _format_finding(item)
+            if groq_unavailable:
+                message = _quota_fallback_finding(item)
+            else:
+                groq_calls += 1
+                message = _format_finding(item)
         except GroqQuotaExhaustedError as exc:
             print(f"ai_writing_stopped={exc}; switching to clearly attributed source briefs")
             groq_unavailable = True
@@ -328,6 +339,8 @@ def main():
     if delivered_items:
         mark_sent(delivered_items)
     print(f"selected_source_counts={source_counts}")
+    print(f"groq_calls_attempted={groq_calls}")
+    print(f"groq_call_budget={max_groq_calls}")
     print(f"findings_sent={len(delivered_items)}")
 
 
