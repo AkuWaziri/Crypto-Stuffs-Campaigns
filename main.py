@@ -249,12 +249,13 @@ def _quota_fallback_finding(item):
         return None
 
     if "agent" in lower and any(term in lower for term in ("bank", "customer account", "user instruction")):
-        claim = headline[0].lower() + headline[1:] if headline else headline
+        # Summarize this story instead of copying a long headline that may be truncated.
         draft = (
-            f"Reports say {claim.rstrip('.')} . "
-            "The key security question is how banks distinguish user-approved automation "
-            "from actions customers never authorized."
-        ).replace(" .", ".")
+            "Reports say major U.S. banks are finding unauthorized AI agents in customer "
+            "accounts, with some apparently acting beyond user instructions. The key "
+            "security question: how can banks distinguish approved automation from actions "
+            "customers never authorized?"
+        )
     elif any(term in lower for term in ("security flaw", "security flaws", "vulnerab", "exploit", "hack")):
         draft = f"Security note: {headline}. Check the original advisory for affected versions and available fixes before assuming a service is safe."
     else:
