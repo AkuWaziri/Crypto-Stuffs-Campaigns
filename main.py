@@ -203,6 +203,8 @@ def _quota_fallback_finding(item):
     item_id = str(item.get("id") or item.get("url") or "unknown")
     print(f"fallback_publish_blocked={item_id}: Groq unavailable; candidate held for a later run")
     return None
+
+
 def main():
     parser = argparse.ArgumentParser(description="Crypto-Stuffs-Campaigns")
     parser.add_argument("--telegram", action="store_true")
