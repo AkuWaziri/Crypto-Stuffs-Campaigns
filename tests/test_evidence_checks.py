@@ -36,3 +36,28 @@ def test_ignores_numbered_howto_steps_and_source_urls():
     )
     assert ok
     assert reason == "supported_literals"
+
+
+def test_editorial_holds_draft_with_unsupported_number(monkeypatch, capsys):
+    from types import SimpleNamespace
+    import editorial
+
+    completions = SimpleNamespace(
+        create=lambda **kwargs: SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(
+                content="The protocol moved 4.2 million USDC during the exploit."
+            ))]
+        )
+    )
+    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    monkeypatch.setattr(editorial, "_client", lambda: fake_client)
+    monkeypatch.setattr(editorial, "_fetch_article_text", lambda url: "")
+    item = {
+        "id": "unsupported-number",
+        "source": "medium",
+        "text": "A protocol exploit affected a lending market, according to the incident report.",
+        "url": "https://example.com/incident-report",
+    }
+
+    assert editorial.write_finding(item) is None
+    assert "evidence_consistency_rejected=unsupported_numeric_claim" in capsys.readouterr().out
