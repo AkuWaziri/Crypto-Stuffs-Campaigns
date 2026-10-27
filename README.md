@@ -12,7 +12,7 @@ The AI writer follows the user's writing DNA:
 - Never invent numbers, wallet identities, motives, connections or verification. Attribute allegations and distinguish observed evidence from interpretations.
 - Preserve the exact source URL at the end of every finding.
 
-The research pipeline attempts to retrieve article text and resolve Google News wrappers to direct publisher URLs when possible. It distinguishes source claims from verified facts and does not claim independent verification unless the relevant evidence was actually checked. A deterministic triage score helps prioritize candidates for research; it is not a truth or confidence score. Weak findings are skipped.
+The research pipeline attempts to retrieve article text and resolve Google News wrappers to direct publisher URLs when possible. It distinguishes source claims from verified facts and does not claim independent verification unless the relevant evidence was actually checked. A deterministic triage score helps prioritize candidates for research; it is not a truth or confidence score. A bounded research audit trail records candidate scores, content type, publication status, and skip/error reasons across scheduled runs. Weak findings are skipped.
 
 ## Coverage
 
