@@ -79,3 +79,13 @@ def test_rejects_number_that_only_appears_as_substring_of_larger_value():
     )
     assert not ok
     assert reason == "unsupported_numeric_claim"
+
+
+
+def test_does_not_reject_standalone_year_missing_from_extracted_snippet():
+    ok, reason = check_draft_against_evidence(
+        "The proposal was published in 2026, but rollout is still pending.",
+        "The proposal was published recently, but rollout is still pending.",
+    )
+    assert ok
+    assert reason == "supported_literals"
