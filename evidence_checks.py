@@ -46,9 +46,11 @@ def check_draft_against_evidence(draft, evidence):
 
     for match in FACT_NUMBER_RE.finditer(body):
         literal = match.group(0).strip()
-        digits = re.sub(r"\D", "", literal)
-        # Ignore small bare integers such as numbered list steps.
-        if not any(char in literal for char in "%.$€£") and not unit_pattern.search(literal) and len(digits) < 3 and "." not in literal:
+        # Keep the gate focused on factual quantities, not every number in prose.
+        # Standalone years, dates, and incidental counts are common false positives
+        # when a source extractor returns only part of an article. Explicit amounts,
+        # percentages, and unit-bearing metrics remain checked below.
+        if not any(char in literal for char in "%.$€£") and not unit_pattern.search(literal):
             continue
 
         numeric_core = _normal_number(re.sub(r"[^\d.,]", "", literal))
