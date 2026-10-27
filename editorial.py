@@ -70,6 +70,46 @@ def _direct_source_url(url):
     return raw
 
 
+def _resolve_source_url(url):
+    """Resolve Google News RSS wrappers to a publisher URL when redirects expose it.
+
+    If the wrapper cannot be resolved, retain the supplied URL rather than guessing.
+    """
+    raw = str(url or "").strip()
+    try:
+        parsed = urlparse(raw)
+        host = (parsed.hostname or "").lower()
+        if not host or not (host == "news.google.com" or host.endswith(".news.google.com") or host == "google.com"):
+            return raw
+        response = requests.get(
+            raw,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; CryptoStuffsResearch/1.0)"},
+            timeout=ARTICLE_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        final_url = str(getattr(response, "url", "") or "").strip()
+        final = urlparse(final_url)
+        final_host = (final.hostname or "").lower()
+        if final.scheme in {"http", "https"} and final_host and not (
+            final_host == "google.com" or final_host.endswith(".google.com")
+        ):
+            return _direct_source_url(final_url)
+        soup = BeautifulSoup(getattr(response, "text", "") or "", "html.parser")
+        candidates = []
+        for node in soup.select('link[rel="canonical"][href], meta[property="og:url"][content]'):
+            candidate = node.get("href") or node.get("content") or ""
+            target = urlparse(candidate)
+            target_host = (target.hostname or "").lower()
+            if target.scheme in {"http", "https"} and target_host and not (
+                target_host == "google.com" or target_host.endswith(".google.com")
+            ):
+                candidates.append(_direct_source_url(candidate))
+        return candidates[0] if candidates else raw
+    except Exception as exc:
+        print(f"source_resolution_skipped={type(exc).__name__}")
+        return raw
+
+
 def _validate_generated_finding(value, source_url):
     """Reject broken/truncated, bloated, or source-dump outputs before delivery."""
     raw = unescape(str(value or ""))
@@ -211,6 +251,7 @@ def write_finding(item):
     url = str(item.get("url") or "").strip()
     if not url:
         raise ValueError("Cannot write a finding without a source URL")
+    url = _resolve_source_url(_direct_source_url(url))
 
     source_text = clean_source_text(item.get("text"))
     source_kind = str(item.get("source") or "").lower()

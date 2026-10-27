@@ -1,6 +1,6 @@
 # Crypto-Stuffs-Campaigns
 
-An automated AI-written crypto findings feed for Telegram. It scans public news and social sources, uses OpenAI to turn the strongest new items into concise, human-sounding findings, and includes the original source link for manual follow-up. It sends up to 10 distinct findings per run.
+An automated AI-written crypto findings feed for Telegram. It scans public news and social sources, uses Groq to research and turn the strongest new items into concise, human-sounding findings, and includes the original source link for manual follow-up. It sends up to 10 distinct findings per run.
 
 ## Editorial style
 
@@ -12,7 +12,7 @@ The AI writer follows the user's writing DNA:
 - Never invent numbers, wallet identities, motives, connections or verification. Attribute allegations and distinguish observed evidence from interpretations.
 - Preserve the exact source URL at the end of every finding.
 
-The bot writes from the discovered source material; it does not claim to have independently verified a source it has not opened. The user follows the original link for deeper manual research.
+The research pipeline attempts to retrieve article text and resolve Google News wrappers to direct publisher URLs when possible. It distinguishes source claims from verified facts and does not claim independent verification unless the relevant evidence was actually checked. A deterministic triage score helps prioritize candidates for research; it is not a truth or confidence score. Weak findings are skipped.
 
 ## Coverage
 
@@ -41,12 +41,12 @@ GitHub Actions runs every 3 hours (UTC cron schedule) and supports manual runs. 
 
 ## Required GitHub Actions secrets
 
-- `OPENAI_API_KEY` — used by the AI writer
+- `GROQ_API_KEY` — used by the research and editorial model
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 - `X_AUTH_TOKEN`
 - `X_CT0`
 
-The default model is `gpt-4o-mini`; override with `OPENAI_MODEL` if needed. OpenAI API usage is billed separately from a ChatGPT subscription. If the AI call fails, the bot logs the error and forwards the original source material with its direct link as a fallback.
+The scheduled workflow uses `openai/gpt-oss-20b` through Groq; override `GROQ_MODEL` to change it. If Groq is unavailable or the per-run model-call budget is exhausted, candidates are held or skipped rather than publishing generic, unreviewed fallback drafts. Original source links are preserved, and Google News links are resolved to publisher URLs when redirects expose them.
 
 Read-only discovery only. No wallet connections, trading or transaction execution.

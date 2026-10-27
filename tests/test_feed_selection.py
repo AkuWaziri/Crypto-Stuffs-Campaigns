@@ -123,7 +123,7 @@ def test_sent_text_history_is_persisted_for_future_runs(monkeypatch, tmp_path):
     assert any("protocol launches a new stablecoin payment router" in text for text in history)
     assert any("public transaction monitoring" in text for text in history)
 
-def test_quota_fallback_returns_post_ready_tweet_and_cleans_repeated_rss_title():
+def test_quota_fallback_blocks_unreviewed_rss_headline(capsys):
     source = (
         "Binance founder CZ warns crypto users over critical PHP security flaws - Crypto News "
         "Binance founder CZ warns crypto users over critical PHP security flaws Crypto News"
@@ -133,14 +133,11 @@ def test_quota_fallback_returns_post_ready_tweet_and_cleans_repeated_rss_title()
         "url": "https://news.google.com/rss/articles/example?oc=5",
     })
 
-    assert result is not None
-    assert result.startswith("Tweet draft (Groq temporarily unavailable):")
-    assert "Source-led research brief" not in result
-    assert result.count("Binance founder CZ warns crypto users over critical PHP security flaws") == 1
-    assert "Check the original advisory for affected versions" in result
-    assert result.endswith("Source: https://news.google.com/rss/articles/example?oc=5")
+    assert result is None
+    assert "fallback_publish_blocked=" in capsys.readouterr().out
 
-def test_quota_fallback_rewrites_truncated_ai_banking_story_as_complete_tweet():
+
+def test_quota_fallback_does_not_turn_truncated_claim_into_unreviewed_tweet(capsys):
     result = main._quota_fallback_finding({
         "text": (
             "SCOOP: Major U.S. banks are detecting unauthorized third-party AI agents inside "
@@ -150,11 +147,5 @@ def test_quota_fallback_rewrites_truncated_ai_banking_story_as_complete_tweet():
         "url": "https://x.com/MadisonMills22/status/2113251043173683683",
     })
 
-    assert result is not None
-    assert "Reports say major U.S. banks are detecting unauthorized third-party AI agents" in result
-    assert "actions customers never authorized" in result
-    assert "The findings have alarmed banking" not in result
-    assert "SCOOP:" not in result
-    assert not result.split("Source:")[0].rstrip().endswith("…")
-    assert result.endswith("Source: https://x.com/MadisonMills22/status/2113251043173683683")
-
+    assert result is None
+    assert "fallback_publish_blocked=" in capsys.readouterr().out
