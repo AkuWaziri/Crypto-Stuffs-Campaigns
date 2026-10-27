@@ -289,8 +289,8 @@ def write_finding(item):
             "ordered steps, the free tier/credit conditions if stated, limitations, and a simple way "
             "to verify success. Keep every claim about pricing, eligibility, limits, rewards, or free "
             "availability tied to the source; these terms change. Do not invent steps or imply a paid "
-            "feature is free. If the source does not support a reproducible guide, return exactly "
-            "SKIP_ITEM. For trading, mining, and DeFi, distinguish educational steps from a profit "
+            "feature is free. If the source does not support a full reproducible guide, write a shorter practical note if the supplied material supports a useful lesson; return exactly "
+            "SKIP_ITEM only when no reproducible step or concrete lesson is supported. For trading, mining, and DeFi, distinguish educational steps from a profit "
             "promise and state material risks without giving unsupported token picks. For security, "
             "keep actions defensive or explicitly authorized. Use concise numbered steps where useful, "
             "make the guide clear enough to follow, and include direct links supplied by the source "
@@ -318,8 +318,7 @@ def write_finding(item):
             "project. Do not claim professional qualifications or legal authority. For compliance, "
             "explain issues as general research, not legal advice. For bug bounty, keep guidance "
             "authorized, defensive, and within a program's scope. Never fabricate metrics, quotes, "
-            "product behavior, project commitments, or a personal case study. If the source has no "
-            "substantive detail that can support a useful skill-led post, return exactly SKIP_ITEM. "
+            "product behavior, project commitments, or a personal case study. If detail is limited, use a narrower post and separate source facts from the suggested idea. Return exactly SKIP_ITEM only when there is no concrete detail to build on. "
             "Prefer official docs, whitepapers, research, technical blogs and primary sources. "
             "Distinguish source facts from your suggested idea. Keep it concise and specific, normally "
             "3–6 sentences. End with the exact original URL on a separate line: Source: <URL>.\n\n"
@@ -330,8 +329,7 @@ def write_finding(item):
             "establishes. Identify the transaction, contract, event sequence, affected system, or "
             "technical disclosure when present. Separate observed facts from wallet attribution, "
             "motive, causality, and interpretation. Do not accuse a person or project unless the "
-            "evidence supports that exact claim. If the source is only an unverified allegation or "
-            "headline without enough detail to explain what is established, return exactly SKIP_ITEM. "
+            "evidence supports that exact claim. If the source is an unverified allegation or headline, write a brief attributed note when the claim is identifiable and clearly state that it is unverified. Return exactly SKIP_ITEM only when no concrete claim or event can be identified. "
             "Prefer primary records and official incident updates. End with one exact Source URL line.\n\n"
         )
     elif research_type == "analysis":
@@ -341,8 +339,7 @@ def write_finding(item):
             "material to answer it. Compare relevant factors where available, such as supply versus "
             "emissions, fees versus incentives, usage versus liquidity, or token burns versus demand. "
             "Do not invent missing numbers, infer price direction from one metric, or imply causation "
-            "from correlation. If the source gives only a vague question or headline without evidence "
-            "to analyze, return exactly SKIP_ITEM. Explain one useful implication and one material "
+            "from correlation. If detailed metrics are missing but a specific question or mechanism is identifiable, write a cautious analysis limited to what is supported. Return exactly SKIP_ITEM only when there is no specific question, mechanism, or evidence to analyze. Explain one useful implication and one material "
             "limitation when relevant. End with one exact Source URL line.\n\n"
         )
     elif research_type == "breaking_news":
@@ -360,24 +357,21 @@ def write_finding(item):
             "Treat this as a practical tool or developer discovery. Explain what the tool actually does, "
             "which problem it solves, who benefits, and what evidence shows it exists or works. Use official "
             "documentation or repository details when available. Distinguish a release from a roadmap, "
-            "and do not invent pricing, features, adoption, security guarantees, or setup steps. If the "
-            "source lacks enough concrete detail to make the tool useful to a reader, return exactly "
-            "SKIP_ITEM. End with one exact Source URL line.\n\n"
+            "and do not invent pricing, features, adoption, security guarantees, or setup steps. If detail is limited, write a brief note restricted to what the source establishes. Return exactly SKIP_ITEM only when the tool or its purpose cannot be identified. End with one exact Source URL line.\n\n"
         )
     elif research_type == "education":
         task_prompt = (
             "Treat this as educational content. Explain the underlying mechanism accurately, use a concrete "
             "example only when supported, and correct the most relevant misconception. Make the explanation "
             "useful at the reader's likely level without oversimplifying important risks. Do not fabricate "
-            "steps, facts, costs, eligibility, or outcomes. If the source cannot support a useful explanation "
-            "or reproducible steps, return exactly SKIP_ITEM. End with one exact Source URL line.\n\n"
+            "steps, facts, costs, eligibility, or outcomes. If the source cannot support a full explanation or reproducible steps, explain the narrower mechanism it does establish. Return exactly SKIP_ITEM only when no useful educational point is supported. End with one exact Source URL line.\n\n"
         )
     else:
         task_prompt = (
             "Act as a selective crypto researcher and editor. First decide whether this contains "
             "a real, specific finding worth a crypto-native reader's attention. Use the full page "
             "text if available. Do not force a crypto angle. If it is generic speculation, marketing, "
-            "a thin listicle, or only supports commentary about missing evidence, return exactly "
+            "a thin listicle, or offers no identifiable concrete subject, return exactly "
             "SKIP_ITEM. Otherwise write the most specific evidence-backed finding and explain its "
             "mechanism or practical significance. Preserve uncertainty; do not pretend you "
             "independently verified the page or any on-chain claim. End with the exact original URL "
