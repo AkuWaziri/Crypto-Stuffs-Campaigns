@@ -20,7 +20,7 @@ jobs:
       X_CT0: ${{ secrets.X_CT0 }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       GROQ_MODEL: openai/gpt-oss-20b
-      MAX_GROQ_CALLS_PER_RUN: "12"
+      MAX_GROQ_CALLS_PER_RUN: "30"
       X_SEARCH_LIMIT: "20"
       MAX_FEED_ITEMS: "10"
       HIGH_PERFORMANCE_MAX_ITEMS: "20"
