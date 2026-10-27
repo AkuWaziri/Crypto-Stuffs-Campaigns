@@ -12,6 +12,7 @@ import requests
 from bs4 import BeautifulSoup
 from groq import Groq
 from research_engine import classify_content
+from evidence_checks import check_draft_against_evidence
 
 MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 DNA_PATH = Path(__file__).with_name("DNA.md")
