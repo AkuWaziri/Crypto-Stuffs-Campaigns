@@ -149,3 +149,51 @@ def test_editorial_output_removes_model_sources_section_and_appends_one_source()
     )
     assert result.count("Source:") == 1
     assert "SOURCES" not in result
+
+
+def test_analysis_finding_uses_analysis_specific_research_prompt(monkeypatch):
+    fake = FakeClient()
+    monkeypatch.setattr(editorial, "_client", lambda: fake)
+    monkeypatch.setattr(
+        editorial,
+        "_fetch_article_text",
+        lambda url: "The protocol burned 2.4 million tokens while scheduled emissions continue; no price outcome is established.",
+    )
+    item = {
+        "id": "analysis-test",
+        "source": "medium",
+        "text": "Token burn reduces supply; compare 2.4 million tokens burned with emissions and demand.",
+        "url": "https://example.com/token-burn-analysis",
+        "created_at": "2026-10-27T10:00:00+00:00",
+    }
+
+    result = editorial.write_finding(item)
+
+    prompt = fake.chat.completions.last_request["messages"][1]["content"]
+    assert '"research_content_type": "analysis"' in prompt
+    assert "Treat this as analytical research" in prompt
+    assert "Do not invent missing numbers" in prompt
+    assert result.endswith("Source: https://example.com/token-burn-analysis")
+
+
+def test_investigation_finding_requires_fact_inference_separation(monkeypatch):
+    fake = FakeClient()
+    monkeypatch.setattr(editorial, "_client", lambda: fake)
+    monkeypatch.setattr(
+        editorial,
+        "_fetch_article_text",
+        lambda url: "An exploit transaction moved 1.2 million USDC from the protocol contract.",
+    )
+    item = {
+        "id": "investigation-test",
+        "source": "medium",
+        "text": "Exploit transaction moved 1.2 million USDC from a protocol contract.",
+        "url": "https://example.com/incident",
+        "created_at": "2026-10-27T10:00:00+00:00",
+    }
+
+    editorial.write_finding(item)
+
+    prompt = fake.chat.completions.last_request["messages"][1]["content"]
+    assert '"research_content_type": "investigation"' in prompt
+    assert "Separate observed facts from wallet attribution, motive, causality" in prompt
