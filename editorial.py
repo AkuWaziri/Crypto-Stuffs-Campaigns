@@ -466,5 +466,12 @@ def write_finding(item):
     if text.strip().upper() == SKIP_MARKER or text.strip().upper().startswith(SKIP_MARKER + " "):
         return None
 
+    # Hold concrete claims that cannot be matched to the retrieved source material.
+    evidence_text = " ".join((source_text, article_text))
+    supported, reason = check_draft_against_evidence(text, evidence_text)
+    if not supported:
+        print(f"evidence_consistency_rejected={reason} source={url}")
+        return None
+
     # Validate the generated body before delivery, then append one clean direct source link.
     return _validate_generated_finding(text, url)
