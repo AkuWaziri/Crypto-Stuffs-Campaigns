@@ -95,7 +95,7 @@ def test_research_record_upserts_status_and_bounds_snippet(monkeypatch, tmp_path
     item = {
         "id": "record-1",
         "source": "web",
-        "text": "Protocol proposes a new stablecoin market with a published collateral factor.",
+        "text": "Protocol proposal adds a new stablecoin market with a published collateral factor.",
         "url": "https://docs.protocol.example/proposal",
         "created_at": "2026-10-27T10:00:00+00:00",
     }
