@@ -213,6 +213,14 @@ def _quota_fallback_finding(item):
     return None
 
 
+def _record_dry_run_finding(item, message):
+    """Print and persist a reviewed draft without contacting Telegram or marking it sent."""
+    item_id = str(item.get("id") or item.get("url") or "unknown")
+    print(f"dry_run_finding={item_id}")
+    print(message)
+    record_candidate(item, status="dry_run_reviewed", draft=message)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Crypto-Stuffs-Campaigns")
     parser.add_argument("--telegram", action="store_true")
@@ -299,8 +307,11 @@ def main():
                 record_candidate(item, status="rejected_by_editorial_gate", reason="No substantive finding passed editorial review")
             print(f"editorial_gate_skip={item['id']}: no substantive finding in available source material")
             continue
+        if args.test:
+            _record_dry_run_finding(item, message)
+            continue
         try:
-            delivered = send_message(message, dry_run=not args.telegram or args.test)
+            delivered = send_message(message, dry_run=not args.telegram)
         except Exception as exc:
             print(f"delivery_error={item['id']}: {exc}")
             record_candidate(item, status="delivery_error", reason=type(exc).__name__, draft=message)
