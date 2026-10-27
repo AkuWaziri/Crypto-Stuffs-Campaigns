@@ -193,6 +193,23 @@ def _unique_findings(groups, limit):
         reverse=True,
     )
     take(remaining_general, limit - len(selected))
+    # Interleave the selected lanes so the per-run Groq budget is not consumed
+    # by one source type before web, how-to, and skill-showcase candidates are tried.
+    selected_groups = [
+        [x for x in selected if x.get("source") == "x_high_performance"],
+        [x for x in selected if x.get("source") in SOCIAL_SOURCES and x.get("source") != "x_high_performance"],
+        [x for x in selected if x.get("source") in WEB_SOURCES],
+        [x for x in selected if x.get("source") in HOWTO_SOURCES],
+        [x for x in selected if x.get("source") in SKILL_SOURCES],
+        [x for x in selected if x.get("source") not in SOCIAL_SOURCES | WEB_SOURCES | SKILL_SOURCES | HOWTO_SOURCES],
+    ]
+    interleaved = []
+    while any(selected_groups):
+        for group in selected_groups:
+            if group:
+                interleaved.append(group.pop(0))
+    selected = interleaved
+
     # Keep internal ranking metadata out of returned source records and persisted state.
     for item in selected:
         item.pop("_research_type", None)
@@ -252,12 +269,9 @@ def main():
             print(f"source_lane_error={label}: {exc}")
             groups.append([])
 
-    # Use a 6x candidate buffer, but stop writing immediately when the delivery
-    # target is reached. This lets the editorial gate replace weak candidates
-    # without lowering quality or fabricating posts to fill the feed.
-    # Keep a small backfill pool so editorial screening cannot fan out into dozens
-    # of token-consuming model calls.
-    candidate_limit = max(MAX_FEED_ITEMS, MAX_FEED_ITEMS * 2)
+    # Keep a 6x candidate buffer so weak leads can be skipped and replaced.
+    # Editorial calls remain capped separately to control Groq usage.
+    candidate_limit = max(MAX_FEED_ITEMS, MAX_FEED_ITEMS * 6)
     max_groq_calls = max(1, int(os.getenv("MAX_GROQ_CALLS_PER_RUN", "12")))
     selected = _unique_findings(groups, candidate_limit)
     print(f"findings_selected={len(selected)}")

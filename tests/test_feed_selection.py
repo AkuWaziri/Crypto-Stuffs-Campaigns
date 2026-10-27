@@ -54,6 +54,27 @@ def test_selection_prefers_x_and_deduplicates_tracking_url_variants(monkeypatch)
     assert len([x for x in selected if x["url"].startswith("https://medium.com/story")]) == 1
 
 
+def test_selection_interleaves_lanes_to_backfill_editorial_skips(monkeypatch):
+    monkeypatch.setattr(main, "_load_seen_ids", lambda: set())
+    x = [item("x_high_performance", n, views=100000 - n) for n in range(20)]
+    web = [item("web", n) for n in range(12)]
+    howto = [item("howto_research", n) for n in range(12)]
+    skill = [item("skill_research", n) for n in range(12)]
+    for entry in howto:
+        entry["content_lane"] = "research_guides"
+    for entry in skill:
+        entry["content_lane"] = "skill_showcase"
+
+    selected = main._unique_findings([x, web, howto, skill], 60)
+
+    assert len(selected) >= 30
+    first_10_sources = [entry["source"] for entry in selected[:10]]
+    assert "x_high_performance" in first_10_sources
+    assert "web" in first_10_sources
+    assert "howto_research" in first_10_sources
+    assert "skill_research" in first_10_sources
+
+
 def test_old_and_duplicate_items_are_filtered(monkeypatch):
     old = item("farcaster", 1)
     old["created_at"] = "2020-01-01T00:00:00+00:00"
