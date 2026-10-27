@@ -14,6 +14,7 @@ from high_performance import _item_key, _url_key, _load_seen_ids, _load_seen_tex
 from telegram import send_message
 from web_sources import fetch_public_content
 from research_engine import annotate_candidate
+from research_records import record_candidate
 
 
 SOCIAL_SOURCES = {"x_high_performance", "x_social", "medium", "reddit", "telegram", "bluesky", "farcaster"}
@@ -254,6 +255,8 @@ def main():
     print(f"findings_selected={len(selected)}")
     print(f"findings_delivery_target={MAX_FEED_ITEMS}")
     print(f"findings_candidate_buffer={candidate_limit}")
+    for candidate in selected:
+        record_candidate(candidate, status="selected_for_research")
     if not selected:
         print("findings_sent=0")
         return
@@ -267,6 +270,7 @@ def main():
             break
         source = item.get("source", "unknown")
         source_counts[source] = source_counts.get(source, 0) + 1
+        record_candidate(item, status="researching")
         if not groq_unavailable and groq_calls >= max_groq_calls:
             groq_unavailable = True
             print(f"groq_call_budget_reached={max_groq_calls}; holding remaining candidates for a later run")
@@ -283,21 +287,28 @@ def main():
         except Exception as exc:
             # Never degrade into raw reposts: skip when Groq cannot produce analysis.
             print(f"ai_writing_error={item['id']}: {exc}")
+            record_candidate(item, status="model_error", reason=type(exc).__name__)
             continue
         if message is None and (groq_unavailable or editorial_module.GROQ_DAILY_QUOTA_EXHAUSTED):
             groq_unavailable = True
             print(f"candidate_held={item['id']}: editorial model unavailable; no unreviewed fallback will be published")
         if message is None:
+            if groq_unavailable or editorial_module.GROQ_DAILY_QUOTA_EXHAUSTED:
+                record_candidate(item, status="held_model_unavailable", reason="Groq unavailable or per-run call budget reached")
+            else:
+                record_candidate(item, status="rejected_by_editorial_gate", reason="No substantive finding passed editorial review")
             print(f"editorial_gate_skip={item['id']}: no substantive finding in available source material")
             continue
         try:
             delivered = send_message(message, dry_run=not args.telegram or args.test)
         except Exception as exc:
             print(f"delivery_error={item['id']}: {exc}")
+            record_candidate(item, status="delivery_error", reason=type(exc).__name__, draft=message)
             continue
         if delivered:
             item["_delivered_text"] = message
             delivered_items.append(item)
+            record_candidate(item, status="published", draft=message)
 
     if delivered_items:
         mark_sent(delivered_items)
