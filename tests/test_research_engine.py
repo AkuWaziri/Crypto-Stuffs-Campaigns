@@ -85,3 +85,27 @@ def test_research_triage_classifies_guides_and_scores_specific_evidence_higher()
     assert specific_score["score"] > generic_score["score"]
     assert specific_score["content_type"] == "investigation"
     assert guide_score["content_type"] == "education"
+
+
+def test_research_record_upserts_status_and_bounds_snippet(monkeypatch, tmp_path):
+    import research_records
+
+    state_file = tmp_path / "research_records.json"
+    monkeypatch.setattr(research_records, "RESEARCH_RECORDS_FILE", state_file)
+    item = {
+        "id": "record-1",
+        "source": "web",
+        "text": "Protocol proposes a new stablecoin market with a published collateral factor.",
+        "url": "https://docs.protocol.example/proposal",
+        "created_at": "2026-10-27T10:00:00+00:00",
+    }
+
+    research_records.record_candidate(item, "selected_for_research")
+    research_records.record_candidate(item, "published", draft="A researched finding.\n\nSource: https://docs.protocol.example/proposal")
+
+    records = research_records.load_research_records()
+    assert len(records) == 1
+    assert records[0]["status"] == "published"
+    assert records[0]["content_type"] == "breaking_news"
+    assert records[0]["priority_score"] is not None
+    assert records[0]["draft"].startswith("A researched finding")
