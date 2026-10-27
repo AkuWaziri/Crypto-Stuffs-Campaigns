@@ -24,6 +24,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Compile project modules
-        run: python -m py_compile main.py discovery.py high_performance.py web_sources.py config.py telegram.py editorial.py research_engine.py research_records.py
+        run: python -m py_compile main.py discovery.py high_performance.py web_sources.py config.py telegram.py editorial.py evidence_checks.py research_engine.py research_records.py
       - name: Run test suite
         run: pytest -q
