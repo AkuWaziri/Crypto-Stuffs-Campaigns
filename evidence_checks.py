@@ -3,7 +3,6 @@
 These checks are conservative consistency guards, not proof that a source is true.
 """
 import re
-from urllib.parse import urlparse
 
 
 URL_RE = re.compile(r"https?://\S+", re.I)
@@ -39,22 +38,38 @@ def check_draft_against_evidence(draft, evidence):
         if address.lower() not in source:
             return False, "unsupported_address"
 
+    source_numbers = list(FACT_NUMBER_RE.finditer(source))
+    unit_pattern = re.compile(
+        r"(%|million|billion|thousand|usd|usdc|eth|btc|days?|hours?|users?|transactions?|wallets?)",
+        re.I,
+    )
+
     for match in FACT_NUMBER_RE.finditer(body):
         literal = match.group(0).strip()
         digits = re.sub(r"\D", "", literal)
         # Ignore small bare integers such as numbered list steps.
-        if not any(char in literal for char in "%.$€£") and not re.search(
-            r"\b(?:million|billion|thousand|usd|usdc|eth|btc|days?|hours?|users?|transactions?|wallets?)\b",
-            literal,
-            re.I,
-        ) and len(digits) < 3 and "." not in literal:
+        if not any(char in literal for char in "%.$€£") and not unit_pattern.search(literal) and len(digits) < 3 and "." not in literal:
             continue
-        normalized = _normal_number(literal)
-        if normalized not in source:
-            # Currency/unit text may differ in source formatting; require the
-            # numeric core too, but never accept a number absent from evidence.
-            numeric_core = _normal_number(re.sub(r"[^\d.,]", "", literal))
-            if not numeric_core or numeric_core not in re.sub(r"[^\d.,]", "", source):
-                return False, "unsupported_numeric_claim"
+
+        numeric_core = _normal_number(re.sub(r"[^\d.,]", "", literal))
+        draft_unit_match = unit_pattern.search(literal)
+        draft_unit = draft_unit_match.group(1).lower() if draft_unit_match else None
+        supported = False
+        for source_match in source_numbers:
+            source_literal = source_match.group(0).strip()
+            source_core = _normal_number(re.sub(r"[^\d.,]", "", source_literal))
+            source_unit_match = unit_pattern.search(source_literal)
+            source_unit = source_unit_match.group(1).lower() if source_unit_match else None
+            # Require the numeric token itself to match, not merely appear as
+            # a substring of another value (for example 100 inside 1,100).
+            if numeric_core != source_core:
+                continue
+            # A stated unit/percent must agree; 100 ETH cannot support 100 USDC.
+            if draft_unit and draft_unit != source_unit:
+                continue
+            supported = True
+            break
+        if not supported:
+            return False, "unsupported_numeric_claim"
 
     return True, "supported_literals"
