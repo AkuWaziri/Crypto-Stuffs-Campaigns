@@ -31,7 +31,9 @@ jobs:
       - name: Restore campaign deduplication state
         uses: actions/cache@v4
         with:
-          path: .campaign_state.json
+          path: |
+            .campaign_state.json
+            .research_records.json
           key: crypto-stuffs-campaign-state-v4-${{ github.run_id }}
           restore-keys: |
             crypto-stuffs-campaign-state-v4-
