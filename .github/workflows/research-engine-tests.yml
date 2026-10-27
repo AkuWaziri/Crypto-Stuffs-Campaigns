@@ -1,0 +1,29 @@
+name: Research Engine Tests
+
+on:
+  push:
+    branches:
+      - main
+      - research-engine-v1
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compile project modules
+        run: python -m py_compile main.py discovery.py high_performance.py web_sources.py config.py telegram.py editorial.py
+      - name: Run test suite
+        run: pytest -q
