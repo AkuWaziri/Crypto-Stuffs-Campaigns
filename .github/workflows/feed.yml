@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: crypto-stuffs-campaign-feed
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   feed:
@@ -44,6 +44,23 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
+      - name: Verify delivery credentials
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+
+          required = ("GROQ_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
+          missing = [name for name in required if not os.getenv(name)]
+          if missing:
+              print("Missing required GitHub Actions secrets: " + ", ".join(missing))
+              sys.exit(1)
+          optional = ("X_AUTH_TOKEN", "X_CT0")
+          absent_optional = [name for name in optional if not os.getenv(name)]
+          if absent_optional:
+              print("Warning: X source credentials missing; X discovery may be limited.")
+          print("Required Groq and Telegram credentials are present.")
+          PY
       - name: Compile project modules
         run: python -m py_compile main.py discovery.py high_performance.py web_sources.py config.py telegram.py editorial.py evidence_checks.py research_engine.py research_records.py
       - name: Run tests
