@@ -37,7 +37,7 @@ Source availability varies; platforms may rate-limit or block automated requests
 
 ## Schedule and delivery
 
-GitHub Actions runs every 3 hours (UTC cron schedule) and supports manual runs. The feed sends up to 10 new findings per run and checks a 7-day lookback. Deduplication state persists across runs, and items are marked as sent only after Telegram accepts delivery.
+GitHub Actions runs every 5 hours (UTC cron schedule) and supports manual runs. The feed sends up to 10 new findings per run and checks a 7-day lookback. Deduplication state persists across runs, and items are marked as sent only after Telegram accepts delivery.
 
 ## Required GitHub Actions secrets
 
