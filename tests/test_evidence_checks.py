@@ -61,3 +61,21 @@ def test_editorial_holds_draft_with_unsupported_number(monkeypatch, capsys):
 
     assert editorial.write_finding(item) is None
     assert "evidence_consistency_rejected=unsupported_numeric_claim" in capsys.readouterr().out
+
+
+def test_rejects_same_number_with_different_asset_unit():
+    ok, reason = check_draft_against_evidence(
+        "The pool holds 100 USDC.",
+        "The pool holds 100 ETH.",
+    )
+    assert not ok
+    assert reason == "unsupported_numeric_claim"
+
+
+def test_rejects_number_that_only_appears_as_substring_of_larger_value():
+    ok, reason = check_draft_against_evidence(
+        "The protocol processed 1000 transactions.",
+        "The protocol processed 10000 transactions.",
+    )
+    assert not ok
+    assert reason == "unsupported_numeric_claim"
