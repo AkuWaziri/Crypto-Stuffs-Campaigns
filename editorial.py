@@ -12,6 +12,7 @@ import requests
 from bs4 import BeautifulSoup
 from groq import Groq
 from research_engine import classify_content
+from evidence_checks import check_draft_against_evidence
 
 MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 DNA_PATH = Path(__file__).with_name("DNA.md")
@@ -463,6 +464,13 @@ def write_finding(item):
     if not text:
         raise RuntimeError("Groq returned an empty finding")
     if text.strip().upper() == SKIP_MARKER or text.strip().upper().startswith(SKIP_MARKER + " "):
+        return None
+
+    # Hold concrete claims that cannot be matched to the retrieved source material.
+    evidence_text = " ".join((source_text, article_text))
+    supported, reason = check_draft_against_evidence(text, evidence_text)
+    if not supported:
+        print(f"evidence_consistency_rejected={reason} source={url}")
         return None
 
     # Validate the generated body before delivery, then append one clean direct source link.
