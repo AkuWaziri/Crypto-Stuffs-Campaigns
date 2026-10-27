@@ -109,3 +109,18 @@ def test_research_record_upserts_status_and_bounds_snippet(monkeypatch, tmp_path
     assert records[0]["content_type"] == "breaking_news"
     assert records[0]["priority_score"] is not None
     assert records[0]["draft"].startswith("A researched finding")
+
+
+def test_dry_run_finding_is_recorded_without_marking_it_published(monkeypatch, capsys):
+    recorded = []
+    monkeypatch.setattr(main, "record_candidate", lambda item, **kwargs: recorded.append((item, kwargs)))
+    item = {"id": "dry-run-1", "source": "web", "text": "A concrete source-backed finding."}
+    draft = "A concrete source-backed finding.\\n\\nSource: https://example.com/report"
+
+    main._record_dry_run_finding(item, draft)
+
+    assert recorded == [(item, {"status": "dry_run_reviewed", "draft": draft})]
+    output = capsys.readouterr().out
+    assert "dry_run_finding=dry-run-1" in output
+    assert draft in output
+    assert "published" not in recorded[0][1]["status"]
