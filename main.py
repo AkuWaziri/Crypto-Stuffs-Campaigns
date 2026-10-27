@@ -192,6 +192,11 @@ def _unique_findings(groups, limit):
         reverse=True,
     )
     take(remaining_general, limit - len(selected))
+    # Keep internal ranking metadata out of returned source records and persisted state.
+    for item in selected:
+        item.pop("_research_type", None)
+        item.pop("_priority_score", None)
+        item.pop("_priority_dimensions", None)
     return selected
 
 
