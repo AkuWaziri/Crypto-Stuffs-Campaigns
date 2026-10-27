@@ -13,6 +13,7 @@ from editorial import GroqQuotaExhaustedError, clean_source_text, write_finding
 from high_performance import _item_key, _url_key, _load_seen_ids, _load_seen_texts, mark_sent, search_high_performing_x
 from telegram import send_message
 from web_sources import fetch_public_content
+from research_engine import annotate_candidate
 
 
 SOCIAL_SOURCES = {"x_high_performance", "x_social", "medium", "reddit", "telegram", "bluesky", "farcaster"}
@@ -109,6 +110,7 @@ def _unique_findings(groups, limit):
 
             item["id"] = item_id
             item["text"] = text
+            item = annotate_candidate(item)
             key = _item_key(item)
             url_key = _url_key(item)
             normalized_text = _normalized_content(text)
@@ -137,27 +139,27 @@ def _unique_findings(groups, limit):
     )
     other_social = sorted(
         (x for x in candidates if x.get("source") in SOCIAL_SOURCES and x.get("source") != "x_high_performance"),
-        key=_sort_key,
+        key=lambda x: (x.get("_priority_score", 0), _sort_key(x)),
         reverse=True,
     )
     web_items = sorted(
         (x for x in candidates if x.get("source") in WEB_SOURCES),
-        key=_sort_key,
+        key=lambda x: (x.get("_priority_score", 0), _sort_key(x)),
         reverse=True,
     )
     skill_items = sorted(
         (x for x in candidates if x.get("source") in SKILL_SOURCES),
-        key=_sort_key,
+        key=lambda x: (x.get("_priority_score", 0), _sort_key(x)),
         reverse=True,
     )
     howto_items = sorted(
         (x for x in candidates if x.get("source") in HOWTO_SOURCES),
-        key=_sort_key,
+        key=lambda x: (x.get("_priority_score", 0), _sort_key(x)),
         reverse=True,
     )
     other_items = sorted(
         (x for x in candidates if x.get("source") not in SOCIAL_SOURCES | WEB_SOURCES | SKILL_SOURCES | HOWTO_SOURCES),
-        key=_sort_key,
+        key=lambda x: (x.get("_priority_score", 0), _sort_key(x)),
         reverse=True,
     )
 
@@ -186,7 +188,7 @@ def _unique_findings(groups, limit):
     # skill-research quotas must not be bypassed by fallback selection.
     remaining_general = sorted(
         (x for x in candidates if x.get("source") not in SKILL_SOURCES | HOWTO_SOURCES),
-        key=_sort_key,
+        key=lambda x: (x.get("_priority_score", 0), _sort_key(x)),
         reverse=True,
     )
     take(remaining_general, limit - len(selected))
