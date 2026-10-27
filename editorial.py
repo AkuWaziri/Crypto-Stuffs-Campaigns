@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, urlparse, urlunparse
 import requests
 from bs4 import BeautifulSoup
 from groq import Groq
+from research_engine import classify_content
 
 MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 DNA_PATH = Path(__file__).with_name("DNA.md")
@@ -261,8 +262,10 @@ def write_finding(item):
     article_text = "" if source_kind in social_sources else _fetch_article_text(url)
     is_skill_lane = item.get("content_lane") == "skill_showcase"
     is_howto_lane = item.get("content_lane") == "research_guides"
+    research_type = classify_content(item)
     source_material = {
         "content_lane": item.get("content_lane", "crypto_findings"),
+        "research_content_type": research_type,
         "skill_profile": item.get("skill_profile", ""),
         "source": item.get("source", "unknown"),
         "author": item.get("author", "unknown"),
@@ -319,6 +322,54 @@ def write_finding(item):
             "Prefer official docs, whitepapers, research, technical blogs and primary sources. "
             "Distinguish source facts from your suggested idea. Keep it concise and specific, normally "
             "3–6 sentences. End with the exact original URL on a separate line: Source: <URL>.\n\n"
+        )
+    elif research_type == "investigation":
+        task_prompt = (
+            "Treat this as a potential investigation. State only what the supplied evidence directly "
+            "establishes. Identify the transaction, contract, event sequence, affected system, or "
+            "technical disclosure when present. Separate observed facts from wallet attribution, "
+            "motive, causality, and interpretation. Do not accuse a person or project unless the "
+            "evidence supports that exact claim. If the source is only an unverified allegation or "
+            "headline without enough detail to explain what is established, return exactly SKIP_ITEM. "
+            "Prefer primary records and official incident updates. End with one exact Source URL line.\n\n"
+        )
+    elif research_type == "analysis":
+        task_prompt = (
+            "Treat this as analytical research, not headline rewriting. Identify the specific question, "
+            "then use actual metrics, protocol mechanics, dates, or documented changes from the supplied "
+            "material to answer it. Compare relevant factors where available, such as supply versus "
+            "emissions, fees versus incentives, usage versus liquidity, or token burns versus demand. "
+            "Do not invent missing numbers, infer price direction from one metric, or imply causation "
+            "from correlation. If the source gives only a vague question or headline without evidence "
+            "to analyze, return exactly SKIP_ITEM. Explain one useful implication and one material "
+            "limitation when relevant. End with one exact Source URL line.\n\n"
+        )
+    elif research_type == "breaking_news":
+        task_prompt = (
+            "Treat this as a potential news finding. Establish what changed, who announced or confirmed "
+            "it, when it happened, and whether it is proposed, announced, in testing, or live. Prefer "
+            "official release notes, governance records, or primary announcements when available. Explain "
+            "the concrete consequence for users, builders, protocol operation, or risk. Do not turn a "
+            "project claim into independent verification or repeat an old event as breaking news. If the "
+            "source does not establish a specific development, return exactly SKIP_ITEM. End with one "
+            "exact Source URL line.\n\n"
+        )
+    elif research_type == "tool_discovery":
+        task_prompt = (
+            "Treat this as a practical tool or developer discovery. Explain what the tool actually does, "
+            "which problem it solves, who benefits, and what evidence shows it exists or works. Use official "
+            "documentation or repository details when available. Distinguish a release from a roadmap, "
+            "and do not invent pricing, features, adoption, security guarantees, or setup steps. If the "
+            "source lacks enough concrete detail to make the tool useful to a reader, return exactly "
+            "SKIP_ITEM. End with one exact Source URL line.\n\n"
+        )
+    elif research_type == "education":
+        task_prompt = (
+            "Treat this as educational content. Explain the underlying mechanism accurately, use a concrete "
+            "example only when supported, and correct the most relevant misconception. Make the explanation "
+            "useful at the reader's likely level without oversimplifying important risks. Do not fabricate "
+            "steps, facts, costs, eligibility, or outcomes. If the source cannot support a useful explanation "
+            "or reproducible steps, return exactly SKIP_ITEM. End with one exact Source URL line.\n\n"
         )
     else:
         task_prompt = (
