@@ -199,74 +199,10 @@ def _format_finding(item):
 
 
 def _quota_fallback_finding(item):
-    """Create a complete, concise tweet draft without copying truncated RSS prose."""
-    text = clean_source_text(item.get("text") or "")
-    url = str(item.get("url") or "").strip()
-    if not text or not url:
-        return None
-
-    # RSS feeds often repeat titles, append publisher names, or end mid-sentence.
-    headline = re.split(r"\s+-\s+", text, maxsplit=1)[0].strip()
-    if "…" in headline or "..." in headline:
-        boundary = max(headline.rfind(". "), headline.rfind("! "), headline.rfind("? "))
-        if boundary > 30:
-            headline = headline[:boundary + 1]
-        else:
-            headline = re.split(r"(?:…|\.{3})", headline, maxsplit=1)[0].strip()
-    headline = re.sub(r"^(?:SCOOP|BREAKING|JUST IN|EXCLUSIVE)\s*:\s*", "", headline, flags=re.I)
-    headline = re.sub(r",?\s*sources? told [A-Z][A-Za-z0-9 .&-]+[.!]?$", "", headline, flags=re.I).strip(" .,:;-")
-
-    words = headline.split()
-    for size in range(len(words) // 2, 5, -1):
-        removed = False
-        for start_idx in range(0, len(words) - (2 * size) + 1):
-            if words[start_idx:start_idx + size] == words[start_idx + size:start_idx + (2 * size)]:
-                words = words[:start_idx + size] + words[start_idx + (2 * size):]
-                removed = True
-                break
-        if removed:
-            break
-    headline = " ".join(words).strip(" -|")
-    lower = headline.lower()
-
-    vague = (
-        "gm everyone", "good morning", "huge news", "this is bullish",
-        "game changer", "mass adoption is coming", "don't miss out",
-    )
-    concrete = (
-        "0x", "transaction", "exploit", "hack", "vulnerab", "security flaw",
-        "security flaws", "warn", "warning", "launch", "launched", "release",
-        "released", "upgrade", "proposal", "mainnet", "testnet", "wallet",
-        "protocol", "api", "sdk", "fees", "revenue", "volume", "users",
-        "million", "billion", "%", "stablecoin", "payment", "deploy",
-        "open source", "documentation", "how to", "guide", "tutorial",
-        "points", "governance", "bridge", "liquidity", "agent", "bank",
-        "account",
-    )
-    if any(term in lower for term in vague) and not any(term in lower for term in concrete):
-        return None
-    if len(headline) < 35 or not any(term in lower for term in concrete):
-        return None
-
-    if "agent" in lower and any(term in lower for term in ("bank", "customer account", "user instruction")):
-        # Summarize this story instead of copying a long headline that may be truncated.
-        draft = (
-            "Reports say major U.S. banks are detecting unauthorized third-party AI agents "
-            "inside customer accounts, with some acting beyond user instructions. The key "
-            "security question: how can banks distinguish approved automation from actions "
-            "customers never authorized?"
-        )
-    elif any(term in lower for term in ("security flaw", "security flaws", "vulnerab", "exploit", "hack")):
-        draft = f"Security note: {headline}. Check the original advisory for affected versions and available fixes before assuming a service is safe."
-    else:
-        draft = f"{headline.rstrip('.')} is worth tracking. Verify the source details and who is affected before acting."
-    if len(draft) > 275:
-        draft = draft[:272].rsplit(" ", 1)[0].rstrip(" ,;:-") + "…"
-    draft = draft.rstrip(" .,:;-…")
-    if not draft or draft.lower().split()[-1] in {"and", "or", "but", "with", "to", "for", "the", "a", "an", "of"}:
-        return None
-    return f"Tweet draft (Groq temporarily unavailable):\n\n{draft}\n\nSource: {url}"
-
+    """Fail closed when Groq is unavailable; never publish an unreviewed generic draft."""
+    item_id = str(item.get("id") or item.get("url") or "unknown")
+    print(f"fallback_publish_blocked={item_id}: Groq unavailable; candidate held for a later run")
+    return None
 def main():
     parser = argparse.ArgumentParser(description="Crypto-Stuffs-Campaigns")
     parser.add_argument("--telegram", action="store_true")
@@ -324,24 +260,24 @@ def main():
         source_counts[source] = source_counts.get(source, 0) + 1
         if not groq_unavailable and groq_calls >= max_groq_calls:
             groq_unavailable = True
-            print(f"groq_call_budget_reached={max_groq_calls}; using low-token fallback for remaining candidates")
+            print(f"groq_call_budget_reached={max_groq_calls}; holding remaining candidates for a later run")
         try:
             if groq_unavailable:
-                message = _quota_fallback_finding(item)
+                message = None
             else:
                 groq_calls += 1
                 message = _format_finding(item)
         except GroqQuotaExhaustedError as exc:
-            print(f"ai_writing_stopped={exc}; switching to clearly attributed source briefs")
+            print(f"ai_writing_stopped={exc}; holding candidates until Groq is available")
             groq_unavailable = True
-            message = _quota_fallback_finding(item)
+            message = None
         except Exception as exc:
             # Never degrade into raw reposts: skip when Groq cannot produce analysis.
             print(f"ai_writing_error={item['id']}: {exc}")
             continue
         if message is None and (groq_unavailable or editorial_module.GROQ_DAILY_QUOTA_EXHAUSTED):
             groq_unavailable = True
-            message = _quota_fallback_finding(item)
+            print(f"candidate_held={item['id']}: editorial model unavailable; no unreviewed fallback will be published")
         if message is None:
             print(f"editorial_gate_skip={item['id']}: no substantive finding in available source material")
             continue
