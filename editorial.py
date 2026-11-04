@@ -147,7 +147,7 @@ def _validate_generated_finding(value, source_url):
         return None
     if body[-1:] not in ".!?”’\\\"')]}":
         final_word = body.rstrip().split()[-1].lower().strip("\\\"'()[]{}") if body.split() else ""
-        dangling_words = {"a", "an", "and", "are", "as", "at", "because", "but", "by", "for", "from", "if", "in", "into", "is", "of", "on", "or", "that", "the", "to", "was", "were", "with", "without", "while"}
+        dangling_words = {"a", "an", "and", "are", "as", "at", "because", "but", "by", "for", "from", "if", "in", "into", "is", "of", "on", "or", "that", "the", "to", "was", "were", "with", "without", "while", "permission"}
         if not final_word or final_word in dangling_words:
             print("editorial_output_rejected=incomplete_ending")
             return None
