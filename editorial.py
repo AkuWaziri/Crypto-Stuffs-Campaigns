@@ -146,8 +146,12 @@ def _validate_generated_finding(value, source_url):
         print("editorial_output_rejected=formatted_report")
         return None
     if body[-1:] not in ".!?”’\\\"')]}":
-        print("editorial_output_rejected=incomplete_ending")
-        return None
+        final_word = body.rstrip().split()[-1].lower().strip("\\\"'()[]{}") if body.split() else ""
+        dangling_words = {"a", "an", "and", "are", "as", "at", "because", "but", "by", "for", "from", "if", "in", "into", "is", "of", "on", "or", "that", "the", "to", "was", "were", "with", "without", "while"}
+        if not final_word or final_word in dangling_words:
+            print("editorial_output_rejected=incomplete_ending")
+            return None
+        body += "."
     last_words = body.rstrip(".!?”’\\\"')]}").lower().split()
     if last_words and last_words[-1] in {
         "a", "an", "and", "are", "as", "at", "because", "but", "by", "for",
@@ -408,9 +412,9 @@ def write_finding(item):
     # Keep generated output and GPT-OSS reasoning bounded. Guides get more
     # room than ordinary findings, but all calls have an explicit ceiling.
     if is_howto_lane:
-        output_token_limit = 280
+        output_token_limit = 320
     elif is_skill_lane:
-        output_token_limit = 180
+        output_token_limit = 240
     else:
         output_token_limit = 180
 
