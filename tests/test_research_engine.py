@@ -124,3 +124,21 @@ def test_dry_run_finding_is_recorded_without_marking_it_published(monkeypatch, c
     assert "dry_run_finding=dry-run-1" in output
     assert draft in output
     assert "published" not in recorded[0][1]["status"]
+
+
+def test_complete_finding_without_terminal_punctuation_is_closed_cleanly():
+    result = editorial._validate_generated_finding(
+        "The protocol has opened deposits to users on its new lending market",
+        "https://example.com/update",
+    )
+    assert result is not None
+    assert "new lending market." in result
+
+
+def test_truncated_finding_with_dangling_word_is_still_rejected(capsys):
+    result = editorial._validate_generated_finding(
+        "The protocol has opened deposits for",
+        "https://example.com/update",
+    )
+    assert result is None
+    assert "editorial_output_rejected=incomplete_ending" in capsys.readouterr().out
